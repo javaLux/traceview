@@ -1,0 +1,25 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
+and this project adheres to [Semantic Versioning](https://semver.org/).
+
+---
+
+## [1.0.0] - 2025-02-20
+### Added
+- 🚀 Initial release of the `TraceView` application.
+- 📂 Filesystem explorer: Navigate the local filesystem with ease.
+- 📊 System overview: View real-time system resource usage (CPU, memory, disk).
+- 🔎 File and directory search: Search for files and directories by name.
+- 📝 Export functionality: Save search results as a JSON file.
+- 🛠️ Configurable settings via a `config.toml` file.
+- 🗂️ Metadata retrieval: View metadata for files and directories (size, permissions, last modified, and more).
+- ❓ Comprehensive help page accessible within the application.
+
+### Fixed
+- N/A (Initial release)
+
+### Changed
+- N/A

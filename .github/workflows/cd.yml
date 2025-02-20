@@ -1,0 +1,134 @@
+name: CD
+
+on:
+  release:
+    types:
+      - created # Trigger this workflow when a new release is created
+
+jobs:
+    # Build and release binaries for Linux and Windows
+  linux_windows:
+    runs-on: ubuntu-latest
+    permissions:
+        contents: write
+        checks: write
+  
+        actions: read
+        issues: read
+        packages: write
+        pull-requests: read
+        repository-projects: read
+        statuses: read
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2 # Checkout the repository to the runner
+
+      - name: Install Linux and Windows Cross Compilers
+        run: sudo apt-get install --yes --no-install-recommends musl-tools gcc-mingw-w64-x86-64-win32 # Install necessary cross-compilers for Linux and Windows
+
+      - name: Install rustup targets
+        run: rustup target add x86_64-unknown-linux-musl x86_64-pc-windows-gnu
+
+      - name: Build the executable
+        run: cargo build --release --target x86_64-unknown-linux-musl --target x86_64-pc-windows-gnu # Build the executable for both Linux and Windows targets
+
+      - name: Build release name
+        run: |
+          PKG_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+          PKG_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          RELEASE_NAME="${PKG_NAME}_${PKG_VERSION}"
+          echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+
+      - name: Tar x86_64 binary
+        run: |
+          PKG_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+          tar -czvf ${{ env.RELEASE_NAME }}-gnu-linux-x86_64.tar.gz -C target/x86_64-unknown-linux-musl/release ${PKG_NAME}
+
+      - name: Zip windows binary
+        run: |
+          PKG_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+          zip -j ${{ env.RELEASE_NAME }}-windows.zip target/x86_64-pc-windows-gnu/release/${PKG_NAME}.exe
+
+      - name: Generate SHA256 checksums
+        run: |
+          shasum -a 256 ${{ env.RELEASE_NAME }}-gnu-linux-x86_64.tar.gz > ${{ env.RELEASE_NAME }}-gnu-linux-x86_64.tar.gz.sha256
+          shasum -a 256 ${{ env.RELEASE_NAME }}-windows.zip > ${{ env.RELEASE_NAME }}-windows.zip.sha256
+
+      - name: Upload release binaries
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # Use the third party action to upload the release binaries
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # Use the GitHub token for authentication
+        with:
+          files: |
+            ${{ env.RELEASE_NAME }}-gnu-linux-x86_64.tar.gz
+            ${{ env.RELEASE_NAME }}-windows.zip
+            ${{ env.RELEASE_NAME }}-gnu-linux-x86_64.tar.gz.sha256
+            ${{ env.RELEASE_NAME }}-windows.zip.sha256
+
+  # Build and release binaries for MacOS (x86_64 and arm64)
+  macos:
+    runs-on: macos-latest
+    permissions:
+        contents: write
+        checks: write
+  
+        actions: read
+        issues: read
+        packages: write
+        pull-requests: read
+        repository-projects: read
+        statuses: read
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Install rustup targets
+        run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
+
+      - name: Build the executable
+        run: cargo build --release --target=x86_64-apple-darwin --target=aarch64-apple-darwin
+
+      - name: Build release name
+        run: |
+          PKG_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+          PKG_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          RELEASE_NAME="${PKG_NAME}_${PKG_VERSION}"
+          echo "RELEASE_NAME=$RELEASE_NAME" >> $GITHUB_ENV
+      - name: Tar x86_64 binary
+        run: |
+          PKG_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+          tar -czvf ${{ env.RELEASE_NAME }}-macos-x86_64.tar.gz -C target/x86_64-apple-darwin/release ${PKG_NAME}
+
+      - name: Tar arm64 binary
+        run: |
+          PKG_NAME=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')
+          tar -czvf ${{ env.RELEASE_NAME }}-macos-aarch64.tar.gz -C target/aarch64-apple-darwin/release ${PKG_NAME}
+
+      - name: Generate SHA256 checksums
+        run: |
+          shasum -a 256 ${{ env.RELEASE_NAME }}-macos-x86_64.tar.gz > ${{ env.RELEASE_NAME }}-macos-x86_64.tar.gz.sha256
+          shasum -a 256 ${{ env.RELEASE_NAME }}-macos-aarch64.tar.gz > ${{ env.RELEASE_NAME }}-macos-aarch64.tar.gz.sha256
+
+      - name: Upload release binaries
+        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          files: |
+            ${{ env.RELEASE_NAME }}-macos-x86_64.tar.gz
+            ${{ env.RELEASE_NAME }}-macos-aarch64.tar.gz
+            ${{ env.RELEASE_NAME }}-macos-x86_64.tar.gz.sha256
+            ${{ env.RELEASE_NAME }}-macos-aarch64.tar.gz.sha256
+#   crates:
+#     runs-on: ubuntu-latest
+#     needs: [linux_windows, macos]
+#     steps:
+#       - name: Publish to crates.io
+#       - uses: actions/checkout@v3
+#       - uses: actions-rs/toolchain@v1
+#         with:
+#           toolchain: stable
+#           override: true
+#       - uses: katyo/publish-crates@v2
+#         with:
+#           registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}

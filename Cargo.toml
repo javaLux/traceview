@@ -1,0 +1,49 @@
+[package]
+name = "traceview"
+authors = ["javaLux"]
+version = "1.0.0"
+edition = "2021"
+description = "Tracing and viewing your files and resource landscape"
+license = "MIT"
+repository = "https://github.com/javaLux/traceview"
+readme = "README.md"
+keywords = ["file-explorer", "tui", "cli"]
+categories = ["command-line-utilities"]
+rust-version = "1.74.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+#Common dependencies ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[dependencies]
+anyhow = "1.0.96"
+clap = { version = "4.5.30", features = ["derive", "cargo", "string"] }
+crossterm = { version = "0.28.1", default-features = false, features = ["event-stream", "serde"] }
+ratatui = "0.29.0"
+tokio = { version = "1.43.0", default-features = false, features = ["macros", "time", "rt-multi-thread", "fs"] }
+tokio-util = "0.7.13"
+futures = "0.3.31"
+path-absolutize = "3.1.1"
+serde = { version = "1.0.218", default-features = false, features = ["serde_derive"] }
+serde_json = "1.0.139"
+log = "0.4.25"
+os_info = { version = "3.10.0", default-features = false }
+simplelog = "0.12.2"
+chrono = "0.4.39"
+sysinfo = "0.33.1"
+walkdir = "2.5.0"
+async-trait = "0.1.86"
+file-format = {version = "0.26.0", features = ["reader"]}
+dirs = "6.0.0"
+confy = "0.6.1"
+console = "0.15.10"
+copypasta = "0.10.1"
+human_bytes = {version = "0.4.3", default-features = false}
+
+
+[profile.release]
+# compiler optimizations for binary size
+opt-level = "s"
+# link optimizations -> causes a longer link time but produce better optimize code
+lto = true
+# strip either symbols or debug info from the final binary
+strip = true

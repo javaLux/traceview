@@ -1,3 +1,9 @@
+[![Build Status](https://github.com/javaLux/traceview/actions/workflows/ci.yml/badge.svg)](https://github.com/javaLux/traceview/actions)
+[![dependency status](https://deps.rs/repo/github/javaLux/traceview/status.svg)](https://deps.rs/repo/github/javaLux/traceview)
+[![GitHub license](https://img.shields.io/github/license/javaLux/traceview.svg)](https://github.com/javaLux/traceview/blob/main/LICENSE)
+[![crates.io](https://img.shields.io/crates/v/traceview.svg)](https://crates.io/crates/traceview)
+![maintenance-status](https://img.shields.io/badge/maintenance-actively--developed-brightgreen.svg)
+
 # TraceView
 
 🚀 **TraceView** is a fast and feature-rich TUI (Text-based User Interface) application written in Rust. It enables users to navigate the local filesystem, monitor system resources, search for files and directories, retrieve metadata, and export search results to JSON. The app is configurable via a `config.toml` file and provides a smooth user experience with different themes.
@@ -20,6 +26,8 @@
 - 📊 **Status Bar**: Displays current context, active theme, last keystroke, and error messages in real-time.
 
 ---
+
+<br>
 
 ## 🚀 Getting Started
 ### 📦 Installation
@@ -78,6 +86,8 @@ TraceView is available on [crates.io](https://crates.io/crates/traceview), allow
    ```
 ---
 
+<br>
+
 ## 🎨 Configuration
 TraceView is configurable via the `config.toml` file located in the Config-Directory. Below is the structure of the default configuration file:
 
@@ -126,6 +136,8 @@ traceview -r 2 -f 30 -c "/path/to/custom_config.toml"
 ```
 ---
 
+<br>
+
 ## 🎨 Themes
 Supported themes:
 - 🖤 **Dark** – High contrast for low-light environments (default)
@@ -137,6 +149,7 @@ To change the theme you can press `Tab` within the app or if you want to set a d
 
 ---
 
+<br>
 
 ## App Contexts
 TraceView operates in three primary contexts, each with context-specific controls and keybindings:
@@ -148,7 +161,6 @@ TraceView operates in three primary contexts, each with context-specific control
 * Please use the provided help page by pressing “F1” to view all keyboard shortcuts and their context.
 
 ## 🧮 Status Bar Features
----
 The status bar, located at the bottom of the interface, provides:
 - 🗂️ **Current Context**: Shows whether you are in Explorer, Search, or Result context.
 - 🎨 **Active Theme**: Displays the currently applied theme.
@@ -156,6 +168,7 @@ The status bar, located at the bottom of the interface, provides:
 - ❗ **Error Messages**: Displays any application errors or warnings.
 ---
 
+<br>
 
 ## 🔎 Searching by File or Directory Name
 TraceView provides a powerful search feature that allows users to search specifically for **file and directory names**. The search functionality focuses only on names, making it possible to:
@@ -168,6 +181,11 @@ TraceView offers two search modes:
 - **Flat Search:** 🔎 Searches only within the currently selected directory (non-recursive). Ideal for quick local searches.
 - **Deep Search:** 🌐 Recursively searches through all subdirectories within the selected path. Useful for locating files or directories in nested structures.
 
+### 📝 **Search Input History:**
+- The input field for typing search queries maintains a **history of previous searches** during the current session.
+- Navigate through past queries using the **Up (↑)** and **Down (↓)** arrow keys to quickly reuse or modify previous searches.
+- This feature enhances efficiency, especially when refining searches or repeating common queries.
+
 ✅ **Usage Notes:**
 - Initiate a search by pressing `Ctrl + F` in the Explorer Context.
 - Enter your search query and choose between Flat or Deep mode.
@@ -178,6 +196,7 @@ TraceView offers two search modes:
 - **Flat Search** provides faster results for localized searches.
 ---
 
+<br>
 
 ## 🗂️ Capturing File and Directory Metadata
 TraceView allows users to capture metadata for both files and directories with the following considerations:
@@ -196,6 +215,7 @@ TraceView allows users to capture metadata for both files and directories with t
 - If `follow_sym_links` is enabled in the configuration, symbolic links within directories are also traversed, potentially increasing processing time.
 ---
 
+<br>
 
 ## ⏳ If Things Take a Long Time
 Some operations in TraceView, such as searching for files/directories or exporting search results, may take longer to complete depending on the size and complexity of the filesystem. 
@@ -205,6 +225,7 @@ Some operations in TraceView, such as searching for files/directories or exporti
 - This is especially useful during deep searches or large directory exports that require extensive processing time.
 ---
 
+<br>
 
 ## 🚫 Limitations & Future Plans
 While TraceView offers a variety of features for browsing, searching, and viewing metadata, it is important to note that **it is not a full-fledged file explorer**. As such:
@@ -213,12 +234,14 @@ While TraceView offers a variety of features for browsing, searching, and viewin
 - 📄 TraceView is currently designed to provide safe, read-only access to filesystem information without risking unintended file modifications.
 ---
 
+<br>
 
 ## 🛡️ License
 This project is licensed under the MIT License.
 
 ---
 
+<br>
 
 ## 🧰 Built With ❤️ in Rust and these awesome crates
 Thanks to the developers of these crates, without whom `TraceView` would not exist<br>
@@ -227,6 +250,7 @@ Thanks to the developers of these crates, without whom `TraceView` would not exi
 - ⌨️  **[Crossterm](https://crates.io/crates/crossterm)** – Cross-platform Terminal Manipulation Library 🖲️
 ---
 
+<br>
 
 ## 🧪 Tested Platforms
 TraceView has been tested on the following operating systems and environments with **x86_64** CPU architecture:
@@ -243,6 +267,8 @@ When testing under MacOs, I noticed that the standard terminal does not fully su
 
 ---
 
+<br>
+
 ## 🛠️ Troubleshooting
 ### 🪟 **Windows Terminal Freeze Issue**
 If you experience the app freezing when clicking inside the terminal window with the **left mouse button** on Windows, this is due to the terminal's default behavior of entering "selection mode." In this mode, terminal input is paused while text is being selected. To avoid this issue:
@@ -258,6 +284,26 @@ If an error appears in the status bar:
   - Check the logs if you encounter unexpected behavior or crashes.
 
 ---
+
+<br>
+
+## 🤝 **Collaboration, Feedback & Bug Reports**
+I welcome feedback, suggestions, and bug reports! Your input helps make TraceView better.
+
+### 💬 **How to Contribute:**
+- Report issues or suggestions via [GitHub Issues](https://github.com/javaLux/traceview/issues).
+- Submit pull requests to improve the code or documentation.
+- Share your thoughts to help shape future features.
+
+### 🐛 **Found a Bug?**
+- Check if it’s already reported.
+- If new, open an issue with details and reproduction steps.
+- Attach logs (in `data` directory) for faster diagnosis.
+
+### 📢 **I Appreciate Your Feedback!**
+Your ideas and input make TraceView more user-friendly. Don’t hesitate to reach out.
+
+<br>
 
 ## 🚀 Thank you for using TraceView! 🙌
 

@@ -158,7 +158,7 @@ TraceView operates in three primary contexts, each with context-specific control
 2. **Search Context** 🔎 – Input and execute file/directory searches.
 3. **Result Context** 📄 – View and export search results.
 
-* Please use the provided help page by pressing “F1” to view all keyboard shortcuts and their context.
+* Please use the provided help page by pressing `F1` to view all keyboard shortcuts and their context.
 
 ## 🧮 Status Bar Features
 The status bar, located at the bottom of the interface, provides:
@@ -202,7 +202,7 @@ TraceView offers two search modes:
 TraceView allows users to capture metadata for both files and directories with the following considerations:
 
 ### 📄 **File Metadata**
-- File metadata is available immediately after invoking the metadata view (press `M` in Explorer Context).
+- File metadata is available immediately after invoking the metadata view (press `Ctrl + A` in Explorer Context).
 - Displayed information includes file size, permissions, last modified date, and ownership.
 
 ### 📁 **Directory Metadata**
@@ -221,7 +221,7 @@ TraceView allows users to capture metadata for both files and directories with t
 Some operations in TraceView, such as searching for files/directories or exporting search results, may take longer to complete depending on the size and complexity of the filesystem. 
 
 ✅ **Cancel Ongoing Processes:**  
-- You can quit the app at any time by pressing **Ctrl + Q**.  
+- You can quit the app at any time by pressing `Ctrl + Q`.  
 - This is especially useful during deep searches or large directory exports that require extensive processing time.
 ---
 
@@ -253,14 +253,14 @@ Thanks to the developers of these crates, without whom `TraceView` would not exi
 <br>
 
 ## 🧪 Tested Platforms
-TraceView has been tested on the following operating systems and environments with **x86_64** CPU architecture:
+TraceView has been tested on the following operating systems and environments:
 
-| Operating System | Version         | Terminal/Shell                                  |
-|------------------|-----------------|-------------------------------------------------|
-| 🪟 Windows       | 10 (Pro)        | Windows Terminal, PowerShell                    |
-| 🐧 Ubuntu Linux  | 24.10           | GNOME-Terminal / bash, zsh                      |
-| 🐧 Linux Mint    | 22.1            | GNOME-Terminal / bash, zsh                      |
-| 🍎 macOS         | Monterey (12.x) | iTerm2 / zsh                                    |
+| Operating System | Version         | Terminal/Shell                                  | CPU-Arch |
+|------------------|-----------------|-------------------------------------------------|-----------
+| 🪟 Windows       | 10 (Pro)        | Windows Terminal, PowerShell                    | x86_64   |
+| 🐧 Ubuntu Linux  | 24.10           | GNOME-Terminal / bash, zsh                      | x86_64   |
+| 🐧 Linux Mint    | 22.1            | GNOME-Terminal / bash, zsh                      | x86_64   |
+| 🍎 macOS         | Monterey (12.x) | iTerm2 / zsh                                    | x86_64   |
 
 ### Notice
 When testing under MacOs, I noticed that the standard terminal does not fully support true RGB (24-bit) colors. For this reason, the test was also carried out with the third-party terminal `iTerm2'`. There all colors are displayed as expected. So if you notice an incorrect display of colors under MacOs, please use the [iTerm2](https://iterm2.com/) terminal.

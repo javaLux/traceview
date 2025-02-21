@@ -620,8 +620,14 @@ impl Explorer {
 
     pub fn find_entries_with_initial(&self, initial: char) -> Option<FilteredEntries> {
         let parent_dir_entry = parent_dir_entry();
-        let initial_lower = initial.to_ascii_lowercase() as u8; // Avoid recalculating this for each item
-
+        let initial_lower = initial.to_lowercase().next(); // Get the first character after lowercasing
+    
+        // If initial_lower is None (rare, but possible), return None early
+        let initial_lower = match initial_lower {
+            Some(c) => c,
+            None => return None,
+        };
+    
         let entries: Vec<_> = self
             .items
             .iter()
@@ -629,9 +635,9 @@ impl Explorer {
             .enumerate() // Attach indices to items
             .filter_map(|(index, item)| {
                 item.name
-                    .as_bytes()
-                    .first()
-                    .map(|&c| c.to_ascii_lowercase()) // Get first character efficiently
+                    .chars()
+                    .next() // Get the first character of the name
+                    .and_then(|c| c.to_lowercase().next()) // Lowercase and get the first character
                     .filter(|&c| c == initial_lower) // Compare without case sensitivity
                     .map(|_| match self.cwd.parent() {
                         Some(_) => index + 1, // Adjust index if parent exists
@@ -639,13 +645,14 @@ impl Explorer {
                     })
             })
             .collect();
-
+    
         if entries.is_empty() {
             None
         } else {
             Some(FilteredEntries::new(initial, entries))
         }
     }
+    
 
     pub fn find_entries_by_name(
         tx: UnboundedSender<Action>,

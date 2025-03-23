@@ -621,13 +621,10 @@ impl Explorer {
     pub fn find_entries_with_initial(&self, initial: char) -> Option<FilteredEntries> {
         let parent_dir_entry = parent_dir_entry();
         let initial_lower = initial.to_lowercase().next(); // Get the first character after lowercasing
-    
+
         // If initial_lower is None (rare, but possible), return None early
-        let initial_lower = match initial_lower {
-            Some(c) => c,
-            None => return None,
-        };
-    
+        let initial_lower = initial_lower?;
+
         let entries: Vec<_> = self
             .items
             .iter()
@@ -645,14 +642,13 @@ impl Explorer {
                     })
             })
             .collect();
-    
+
         if entries.is_empty() {
             None
         } else {
             Some(FilteredEntries::new(initial, entries))
         }
     }
-    
 
     pub fn find_entries_by_name(
         tx: UnboundedSender<Action>,

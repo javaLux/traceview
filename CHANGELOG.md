@@ -7,10 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.2] - 2025-03-23
+- update dependencies
+
+### Added
+- pre compiled binaries for Linux, MacOs and Windows
+  - provided builds for `x86_64` and `aarch_64(ARM64)`
+<br>
+
+
 ## [1.0.1] - 2025-02-21
 ### Fixed
 - Improved filtering logic for selecting files and directories by their initial letter, with proper case-insensitive matching.
 - Correctly handles non-ASCII characters when filtering by initial letters
+<br>
+
 
 ## [1.0.0] - 2025-02-20
 ### Added

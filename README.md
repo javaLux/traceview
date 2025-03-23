@@ -29,7 +29,7 @@ A fast and feature-rich TUI (Text-based User Interface) application written in R
 
 <br>
 
-## 🚀 Getting Started
+## Getting Started
 ### 📦 Installation
 There are three ways to get started with TraceView:
 
@@ -178,8 +178,8 @@ TraceView provides a powerful search feature that allows users to search specifi
 
 ### Search Options
 TraceView offers two search modes:
-- **Flat Search:** 🔎 Searches only within the currently selected directory (non-recursive). Ideal for quick local searches.
-- **Deep Search:** 🌐 Recursively searches through all subdirectories within the selected path. Useful for locating files or directories in nested structures.
+- **Flat Search:** Searches only within the currently selected directory (non-recursive). Ideal for quick local searches.
+- **Deep Search:** Recursively searches through all subdirectories within the selected path. Useful for locating files or directories in nested structures.
 
 ### Search Input History
 - The input field for typing search queries maintains a **history of previous searches** during the current session.
@@ -201,16 +201,16 @@ TraceView offers two search modes:
 ## 🗂️ Capturing File and Directory Metadata
 TraceView allows users to capture metadata (press `Ctrl + A` in Explorer Context), for both files and directories with the following considerations:
 
-### 📄 File Metadata
+### File Metadata
 - File metadata is available immediately after invoking the metadata view.
 - Displayed information includes file size, permissions, last modified date, and ownership.
 
-### 📁 Directory Metadata
+### Directory Metadata
 - Directory metadata collection may take longer, especially for large directories.
 - This is because TraceView recursively scans all contained files and subdirectories to determine:
-  - 📏 Total size
-  - 🗂️ Number of contained files
-  - 📂 Number of contained subdirectories
+  - Total size
+  - Number of contained files
+  - Number of contained subdirectories
 - **Note:** The depth and complexity of the directory structure will affect the processing time.
 - If `follow_sym_links` is enabled in the configuration, symbolic links within directories are also traversed, potentially increasing processing time.
 ---

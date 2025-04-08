@@ -1,16 +1,16 @@
-use std::path::{Path, PathBuf};
+use std::io::{BufWriter, Write};
+use std::path::PathBuf;
 
 use anyhow::Result;
 use async_trait::async_trait;
 use ratatui::{prelude::*, widgets::*};
-
-use tokio::{sync::mpsc::UnboundedSender, task::JoinHandle};
+use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
     app::{actions::Action, config::AppConfig, key_bindings, AppContext, AppState},
     component::Component,
-    file_handling::{DiskEntry, SearchResult},
+    file_handling::SearchResult,
     models::Scrollable,
     tui::Event,
     ui::{
@@ -29,7 +29,7 @@ impl Default for ExportTask {
     fn default() -> Self {
         let cancellation_token = CancellationToken::new();
         let task = tokio::spawn(async {
-            std::future::pending::<()>().await;
+            std::future::ready(()).await;
         });
         Self {
             task,
@@ -39,70 +39,109 @@ impl Default for ExportTask {
 }
 
 impl ExportTask {
-    fn run<P: AsRef<Path>>(
+    pub fn export_as_json(
         &mut self,
-        search_query: &str,
-        search_results: Vec<DiskEntry>,
-        action_sender: UnboundedSender<Action>,
-        export_dir: P,
+        search_query: String,
+        mut json_rx: mpsc::Receiver<serde_json::Value>,
+        action_sender: mpsc::UnboundedSender<Action>,
+        export_dir: PathBuf,
     ) {
         self.cancel();
         self.cancellation_token = CancellationToken::new();
         let cancellation_token = self.cancellation_token.clone();
 
-        let search_query = search_query.to_owned();
-        let export_path = export_dir.as_ref().join(format!(
+        let export_path = export_dir.join(format!(
             "search_results_{}.json",
             chrono::Local::now().format("%Y-%m-%dT%H_%M_%S")
         ));
 
         self.task = tokio::task::spawn(async move {
-            let mut success_count = 0_usize;
-            let total_items = search_results.len();
-            let mut json_values: Vec<serde_json::Value> = Vec::with_capacity(total_items);
-            for entry in search_results {
+            let file = match std::fs::File::create(export_path) {
+                Ok(file) => file,
+                Err(err) => {
+                    log::error!("Failed to create export file - Details {:?}", err);
+                    let _ = action_sender
+                        .send(Action::ExportFailure("Failed to create export file".into()));
+                    return;
+                }
+            };
+
+            let mut writer = BufWriter::new(file);
+
+            // Write the opening JSON structure
+            let open_json = format!(
+                "{{\n  \"search_query\": \"{}\",\n  \"results\": [\n",
+                search_query
+            );
+
+            if let Err(err) = writer.write_all(open_json.as_bytes()) {
+                log::error!(
+                    "Failed to write open JSON string to export file - Details {:?}",
+                    err
+                );
+                let _ = action_sender.send(Action::ExportFailure(
+                    "Failed to write to export file".into(),
+                ));
+                return;
+            };
+
+            let mut first = true;
+
+            // Write each JSON entry
+            while let Some(entry) = json_rx.recv().await {
                 if cancellation_token.is_cancelled() {
                     let _ = action_sender.send(Action::ForcedShutdown);
                     break;
                 }
-                json_values.push(entry.build_as_json());
-                success_count += 1;
-                let update_msg = format!("Exporting results... {}/{}", success_count, total_items);
-                let _ = action_sender.send(Action::UpdateAppState(AppState::Working(update_msg)));
-            }
-
-            let final_json_export = serde_json::json!(
-                {
-                    "query": search_query,
-                    "results": json_values
-                }
-            );
-
-            // Convert JSON data to a pretty string
-            match serde_json::to_string_pretty(&final_json_export) {
-                Ok(pretty_json) => {
-                    // Write JSON to file asynchronously
-                    if let Err(io_err) = tokio::fs::write(&export_path, pretty_json).await {
+                if !first {
+                    if let Err(err) = writer.write_all(b",\n") {
                         log::error!(
-                            "Failed to write search results into file '{}' - Details {:#?}",
-                            utils::absolute_path_as_string(&export_path),
-                            io_err
+                            "Failed to write indentation to export file - Details {:?}",
+                            err
                         );
                         let _ = action_sender.send(Action::ExportFailure(
-                            "Failed to export search results".into(),
+                            "Failed to write to export file".into(),
                         ));
-                    } else {
-                        let _ = action_sender.send(Action::ExportDone);
+                        return;
                     }
                 }
-                Err(err) => {
-                    log::error!("Failed to serialize Search-Results as JSON: {}", err);
-                    let _ = action_sender.send(Action::ExportFailure(
-                        "Failed to export search results".into(),
-                    ));
+                first = false;
+
+                // Indent each entry with 4 spaces
+                if let Err(err) = writer.write_all(b"    ") {
+                    log::error!("Failed to write indentation - Details {:?}", err);
+                    let _ = action_sender.send(Action::ExportFailure(format!(
+                        "Failed to write indentation: {}",
+                        err
+                    )));
+                    return;
                 }
+
+                if let Err(err) = serde_json::to_writer(&mut writer, &entry) {
+                    log::error!("Failed to search result to export file - Details {:?}", err);
+                    let _ = action_sender.send(Action::ExportFailure(
+                        "Failed to write to export file".into(),
+                    ));
+                    return;
+                };
             }
-        })
+
+            // Write the closing JSON structure
+            let close_json = "\n  ]\n}".to_string();
+            if let Err(err) = writer.write_all(close_json.as_bytes()) {
+                log::error!(
+                    "Failed to write closing JSON string to export file - Details {:?}",
+                    err
+                );
+                let _ = action_sender.send(Action::ExportFailure(
+                    "Failed to write to export file".into(),
+                ));
+                return;
+            }
+            let _ = writer.flush();
+
+            let _ = action_sender.send(Action::ExportDone);
+        });
     }
 
     pub fn cancel(&self) {
@@ -414,16 +453,37 @@ impl Component for ResultWidget {
                 if key.modifiers == crossterm::event::KeyModifiers::NONE =>
             {
                 self.is_working = true;
-                self.export_task.run(
-                    self.search_result.search_query(),
-                    self.search_result.items().clone(),
-                    self.action_sender.clone().unwrap(),
-                    &self.export_dir,
-                );
+
+                self.send_app_action(Action::UpdateAppState(AppState::Working(
+                    "Exporting results...".into(),
+                )))?;
+
+                let (tx, rx) = mpsc::channel(100);
+                let search_query = self.search_result.search_query().to_string();
+                let export_dir = self.export_dir.clone();
+                let action_sender = self.action_sender.clone().unwrap();
+                let items = self.search_result.items().to_vec();
+
+                self.export_task
+                    .export_as_json(search_query, rx, action_sender, export_dir);
+
+                let tx_clone = tx.clone();
+                tokio::spawn(async move {
+                    for entry in items {
+                        let json_value = entry.build_as_json();
+                        // Send to writer
+                        if tx_clone.send(json_value).await.is_err() {
+                            println!("Writer task dropped, stopping producer");
+                            break;
+                        }
+                    }
+                });
+
+                // Close the channel to indicate that no more values will be sent
+                drop(tx);
             }
             crossterm::event::KeyCode::Esc => {
                 self.app_context = AppContext::NotActive;
-                // self.search_result.reset();
                 self.search_result = SearchResult::default();
                 self.table_state
                     .select(self.search_result.selected().into());
@@ -636,7 +696,7 @@ impl Component for ResultWidget {
                     left: 0,
                     right: 0,
                     top: 1,
-                    bottom: 0,
+                    bottom: 1,
                 }))
                 .highlight_symbol(
                     Text::from(vec!["\n".into(), HIGHLIGHT_SYMBOL.into()])

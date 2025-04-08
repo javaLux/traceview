@@ -1,16 +1,19 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use ratatui::{prelude::*, style::palette::tailwind, widgets::*};
+use serde_json::{json, Map, Value};
 
 use crate::{
     app::{actions::Action, config::AppConfig, AppContext},
     component::Component,
     tui::Event,
     ui::PALETTES,
-    utils::{absolute_path_as_string, config_dir, data_dir, format_path_for_display},
+    utils::{
+        absolute_path_as_string, config_dir, copy_to_clipboard, data_dir, format_path_for_display,
+    },
 };
 
-const BLOCK_TITLE: &str = " About | <Esc> close ";
+const BLOCK_TITLE: &str = " About | <Esc> close | <Ctrl+C> Copy ";
 
 #[derive(Debug)]
 struct TableColors {
@@ -79,6 +82,38 @@ impl AboutPage {
             vec!["Follow symbolic links".into(), follow_sym_links.into()],
         ]
     }
+
+    fn copy_about_msg(&self) -> Result<()> {
+        let config_info = self.config_info(); // Call your original function
+
+        let mut map = Map::new();
+        for pair in config_info {
+            if let [key, value] = &pair[..] {
+                map.insert(key.clone(), Value::String(value.clone()));
+            }
+        }
+        let config_info_json = json!(map);
+
+        let app_info = self.app_info(); // Call your original function
+        let mut map = Map::new();
+        for pair in app_info {
+            if let [key, value] = &pair[..] {
+                map.insert(key.clone(), Value::String(value.clone()));
+            }
+        }
+        let app_info_json = json!(map);
+
+        let about_json = serde_json::to_string_pretty(&serde_json::json!(
+            {
+                "app": app_info_json,
+                "configuration": config_info_json,
+            }
+        ))
+        .context("Failed to serialize about message")?;
+
+        copy_to_clipboard(&about_json).context("Failed to copy about message to clipboard")?;
+        Ok(())
+    }
 }
 
 impl Default for AboutPage {
@@ -129,6 +164,14 @@ impl Component for AboutPage {
             crossterm::event::KeyCode::Esc => {
                 self.is_active = false;
                 Ok(Action::SwitchAppContext(self.caller_context).into())
+            }
+            crossterm::event::KeyCode::Char('c')
+                if key.modifiers == crossterm::event::KeyModifiers::CONTROL =>
+            {
+                if let Err(copy_err) = self.copy_about_msg() {
+                    log::error!("Failed to copy about message: {copy_err}");
+                }
+                Ok(None)
             }
             _ => Ok(None),
         }

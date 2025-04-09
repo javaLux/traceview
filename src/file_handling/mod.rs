@@ -2,10 +2,7 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    task::JoinHandle,
-};
+use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use walkdir::WalkDir;
 
@@ -80,62 +77,57 @@ impl DiskEntry {
 pub struct ExplorerTask {
     task: JoinHandle<()>,
     cancellation_token: CancellationToken,
-    /// This sender is used to send actions back to the main thread
-    action_sender: UnboundedSender<Action>,
     is_forced_shutdown: bool,
 }
 
 impl ExplorerTask {
     /// Constructs a new instance of [`ExplorerTask`].
-    pub fn new(tx: UnboundedSender<Action>) -> Self {
+    pub fn new() -> Self {
         let cancellation_token = CancellationToken::new();
         let task = tokio::spawn(async {
             std::future::pending::<()>().await;
         });
+
         Self {
             task,
             cancellation_token,
-            action_sender: tx,
             is_forced_shutdown: false,
         }
     }
 
     /// Runs the explorer task
-    pub fn run(&mut self, rx: UnboundedReceiver<Action>) {
-        let tx = self.action_sender.clone();
-        let mut rx = rx;
-
+    pub fn run(&mut self, action_sender: mpsc::UnboundedSender<Action>) -> mpsc::Sender<Action> {
+        let (explorer_sender, mut explorer_receiver) = mpsc::channel::<Action>(10);
         self.cancel();
         self.cancellation_token = CancellationToken::new();
         let _cancellation_token = self.cancellation_token.clone();
-
         self.task = tokio::task::spawn(async move {
             loop {
                 tokio::select! {
                         _ = _cancellation_token.cancelled() => {
                             break;
                           }
-                        Some(action) = rx.recv() => {
+                        Some(action) = explorer_receiver.recv() => {
                             match action {
                                 Action::LoadDir(p, follow_sym_links) => {
-                                    tx.send(Action::UpdateAppState(AppState::Working("Loading directory...".into())))
+                                    action_sender.send(Action::UpdateAppState(AppState::Working("Loading directory...".into())))
                                         .expect("Explorer: Unable to send 'Action::UpdateExplorerState'");
                                     let explorer = Explorer::load_directory(p, follow_sym_links);
-                                    tx.send(Action::LoadDirDone(explorer)).expect("Explorer: Unable to send 'Action::LoadDirDone'");
+                                    action_sender.send(Action::LoadDirDone(explorer)).expect("Explorer: Unable to send 'Action::LoadDirDone'");
                                 }
                                 Action::LoadDirMetadata(dir_name, path, follow_sym_links) => {
                                     // handle result, if it was not possible to send a Action over the channel, we don't want to panic
                                     // in this case, instead we log the error
-                                    match Explorer::get_dir_metadata(tx.clone(), dir_name, path, follow_sym_links) {
-                                        Ok(dir_metadata) => tx.send(Action::LoadDirMetadataDone(dir_metadata)).expect("Explorer: Unable to send 'Action::LoadDirMetadataDone'"),
+                                    match Explorer::get_dir_metadata(action_sender.clone(), dir_name, path, follow_sym_links) {
+                                        Ok(dir_metadata) => action_sender.send(Action::LoadDirMetadataDone(dir_metadata)).expect("Explorer: Unable to send 'Action::LoadDirMetadataDone'"),
                                         Err(_) => {
                                             log::error!("Explorer: Unable to send 'Action::UpdateExplorerState' while processing directory metadata. The channel may have been dropped or closed before the sending completed.");
                                         },
                                     }
                                 }
                                 Action::StartSearch(cwd, search_query, depth, follow_sym_links) => {
-                                    match Explorer::find_entries_by_name(tx.clone(), cwd, search_query, depth, follow_sym_links) {
-                                        Ok(search_result) => tx.send(Action::SearchDone(search_result)).expect("Explorer: Unable to send 'Action::SearchDone'"),
+                                    match Explorer::find_entries_by_name(action_sender.clone(), cwd, search_query, depth, follow_sym_links) {
+                                        Ok(search_result) => action_sender.send(Action::SearchDone(search_result)).expect("Explorer: Unable to send 'Action::SearchDone'"),
                                         Err(_) => {
                                             log::error!("Explorer: Unable to send 'Action::UpdateExplorerState' while searching for files/folders. The channel may have been dropped or closed before the sending completed.");
                                         },
@@ -147,6 +139,8 @@ impl ExplorerTask {
                 }
             }
         });
+
+        explorer_sender
     }
 
     pub fn cancel(&self) {
@@ -567,7 +561,7 @@ impl Explorer {
     }
 
     fn get_dir_metadata(
-        tx: UnboundedSender<Action>,
+        tx: mpsc::UnboundedSender<Action>,
         dir_name: String,
         p: PathBuf,
         follow_sym_links: bool,
@@ -651,7 +645,7 @@ impl Explorer {
     }
 
     pub fn find_entries_by_name(
-        tx: UnboundedSender<Action>,
+        tx: mpsc::UnboundedSender<Action>,
         cwd: PathBuf,
         search_query: String,
         depth: usize,

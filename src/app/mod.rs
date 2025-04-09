@@ -3,7 +3,7 @@ use console::style;
 use crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::prelude::Rect;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::mpsc;
 
 use crate::{
     app::{actions::Action, config::AppConfig},
@@ -125,10 +125,7 @@ impl App {
     pub async fn run(&mut self) -> Result<()> {
         // We are going introduce a new mpsc::unbounded_channel to communicate between the different app components.
         // The advantage of this is that we can programmatically trigger updates to the state of the app by sending Actions on the channel.
-        let (component_tx, mut component_rx) = unbounded_channel::<Action>();
-
-        // Use a separate channel to communicate with the Explorer background task
-        let (explorer_tx, explorer_rx) = unbounded_channel::<Action>();
+        let (component_tx, mut component_rx) = mpsc::unbounded_channel::<Action>();
 
         // build the TUI
         let mut tui = tui::Tui::new()?
@@ -153,19 +150,19 @@ impl App {
             component.register_component_action_sender(component_tx.clone())?;
         }
 
-        // Register the Explorer-Action-Sender for each app component that needs it
-        for component in self.components.iter_mut() {
-            component.register_explorer_action_sender(explorer_tx.clone())?;
-        }
-
         // Register the config handler for each component
         for component in self.components.iter_mut() {
             component.register_config_handler(self.config.clone())?;
         }
 
         // Init and run the explorer background task
-        let mut explorer_task = ExplorerTask::new(component_tx.clone());
-        explorer_task.run(explorer_rx);
+        let mut explorer_task = ExplorerTask::new();
+        let explorer_sender = explorer_task.run(component_tx.clone());
+
+        // Register the Explorer-Action-Sender for each app component that needs it
+        for component in self.components.iter_mut() {
+            component.register_explorer_action_sender(explorer_sender.clone())?;
+        }
 
         // This is the Application main loop
         loop {
@@ -190,10 +187,6 @@ impl App {
                     KeyCode::Char('q') if key_event.modifiers == KeyModifiers::CONTROL => {
                         component_tx.send(Action::Quit)?
                     }
-                    // KeyCode::Char('p') => panic!("Testing the panic handler"),
-                    // KeyCode::Char('e') => component_tx.send(Action::Error(
-                    //     "Testing application error".to_string(),
-                    // ))?,
                     _ => component_tx.send(Action::None)?,
                 },
                 tui::Event::Resize(w, h) => component_tx.send(Action::Resize(w, h))?,
@@ -221,7 +214,7 @@ impl App {
                                 let _ = component.render(f, f.area());
                             }
                         })
-                        .with_context(|| "Failed to draw UI on screen while resizing")?;
+                        .with_context(|| "Failed to render UI on screen while resizing")?;
                     }
                     Action::Error(err) => {
                         return Err(anyhow::anyhow!(format!(
@@ -241,8 +234,8 @@ impl App {
             }
 
             if self.should_quit {
-                explorer_task.stop();
                 tui.stop();
+                explorer_task.stop();
                 break;
             }
         }

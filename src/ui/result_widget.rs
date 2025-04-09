@@ -173,7 +173,7 @@ pub struct ResultWidget {
     /// Action sender that can send actions to all other components
     action_sender: Option<tokio::sync::mpsc::UnboundedSender<Action>>,
     /// Associated Explorer operation sender, that can send actions to the [`Explorer`]
-    explorer_action_sender: Option<tokio::sync::mpsc::UnboundedSender<Action>>,
+    explorer_action_sender: Option<tokio::sync::mpsc::Sender<Action>>,
     /// Flag to control the available draw area for the [`SearchWidget`]
     /// If the [`crate::ui::info_widget::SystemOverview`] is not visible, than use the whole draw area
     use_whole_draw_area: bool,
@@ -224,10 +224,10 @@ impl Default for ResultWidget {
 impl ResultWidget {
     /// Helper function to send a [`Action`] to the [`crate::file_handling::Explorer`]
     /// Set the `is_working` flag to true
-    fn send_explorer_action(&mut self, action: Action) -> Result<()> {
-        if let Some(handler) = &self.explorer_action_sender {
+    async fn send_explorer_action(&mut self, action: Action) -> Result<()> {
+        if let Some(sender) = &self.explorer_action_sender {
             self.is_working = true;
-            handler.send(action)?
+            sender.send(action).await?;
         }
         Ok(())
     }
@@ -272,7 +272,7 @@ impl Component for ResultWidget {
 
     fn register_explorer_action_sender(
         &mut self,
-        tx: tokio::sync::mpsc::UnboundedSender<Action>,
+        tx: tokio::sync::mpsc::Sender<Action>,
     ) -> Result<()> {
         self.explorer_action_sender = Some(tx);
         Ok(())
@@ -401,7 +401,8 @@ impl Component for ResultWidget {
                         selected_entry.name.clone(),
                         selected_entry.path.clone(),
                         self.follow_sym_links,
-                    ))?;
+                    ))
+                    .await?;
                 }
             }
             // Ctrl + c -> Copy absolute path to clipboard
@@ -472,8 +473,8 @@ impl Component for ResultWidget {
                     for entry in items {
                         let json_value = entry.build_as_json();
                         // Send to writer
-                        if tx_clone.send(json_value).await.is_err() {
-                            println!("Writer task dropped, stopping producer");
+                        if let Err(err) = tx_clone.send(json_value).await {
+                            log::error!("Failed to send JSON value to writer task - Details {:?}", err);
                             break;
                         }
                     }

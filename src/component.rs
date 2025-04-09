@@ -35,7 +35,7 @@ pub trait Component {
     #[allow(unused_variables)]
     fn register_explorer_action_sender(
         &mut self,
-        tx: tokio::sync::mpsc::UnboundedSender<Action>,
+        tx: tokio::sync::mpsc::Sender<Action>,
     ) -> Result<()> {
         Ok(())
     }

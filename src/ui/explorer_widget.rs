@@ -29,7 +29,7 @@ pub struct ExplorerWidget {
     /// Action sender that can send actions to all other components
     action_sender: Option<tokio::sync::mpsc::UnboundedSender<Action>>,
     /// Associated Explorer operation sender, that can send actions to the [`Explorer`]
-    explorer_action_sender: Option<tokio::sync::mpsc::UnboundedSender<Action>>,
+    explorer_action_sender: Option<tokio::sync::mpsc::Sender<Action>>,
     /// Terminal height used to control the number of items to display on the screen
     terminal_height: u16,
     /// Page height used to control the PageUp and PageDown operations
@@ -65,10 +65,10 @@ impl ExplorerWidget {
     }
     /// Helper function to send a [`Action`] to the [`Explorer`]
     /// Set the `is_working` flag to true
-    fn send_explorer_action(&mut self, action: Action) -> Result<()> {
-        if let Some(handler) = &self.explorer_action_sender {
+    async fn send_explorer_action(&mut self, action: Action) -> Result<()> {
+        if let Some(sender) = &self.explorer_action_sender {
             self.is_working = true;
-            handler.send(action)?
+            sender.send(action).await?;
         }
         Ok(())
     }
@@ -137,7 +137,7 @@ impl Component for ExplorerWidget {
 
     fn register_explorer_action_sender(
         &mut self,
-        tx: tokio::sync::mpsc::UnboundedSender<Action>,
+        tx: tokio::sync::mpsc::Sender<Action>,
     ) -> Result<()> {
         self.explorer_action_sender = Some(tx);
         Ok(())
@@ -232,7 +232,8 @@ impl Component for ExplorerWidget {
                     self.send_explorer_action(Action::LoadDir(
                         self.explorer.cwd().clone(),
                         self.follow_sym_links,
-                    ))?;
+                    ))
+                    .await?;
                 } else {
                     return Ok(Action::UpdateAppState(AppState::Failure(
                         "The current directory no longer exists".to_string(),
@@ -250,7 +251,8 @@ impl Component for ExplorerWidget {
                         let new_dir = selected_entry.path.clone();
 
                         // send the explorer operation to change the directory
-                        self.send_explorer_action(Action::LoadDir(new_dir, self.follow_sym_links))?;
+                        self.send_explorer_action(Action::LoadDir(new_dir, self.follow_sym_links))
+                            .await?;
                     } else {
                         return Ok(Action::UpdateAppState(AppState::Failure(
                             "The selected directory no longer exists".to_string(),
@@ -269,7 +271,8 @@ impl Component for ExplorerWidget {
                         self.send_explorer_action(Action::LoadDir(
                             parent_dir.to_path_buf(),
                             self.follow_sym_links,
-                        ))?;
+                        ))
+                        .await?;
                     }
                     None => {
                         self.send_app_action(Action::UpdateAppState(AppState::Failure(
@@ -331,7 +334,8 @@ impl Component for ExplorerWidget {
                             self.send_explorer_action(Action::LoadDir(
                                 home_dir,
                                 self.follow_sym_links,
-                            ))?;
+                            ))
+                            .await?;
                         } else {
                             self.send_app_action(Action::UpdateAppState(AppState::Done(
                                 "Already in home directory".to_string(),
@@ -382,7 +386,8 @@ impl Component for ExplorerWidget {
                             selected_entry.name.clone(),
                             selected_entry.path.clone(),
                             self.follow_sym_links,
-                        ))?;
+                        ))
+                        .await?;
                     }
                 }
 

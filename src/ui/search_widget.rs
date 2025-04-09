@@ -47,7 +47,7 @@ pub struct SearchWidget {
     /// Action sender that can send actions to all other components
     action_sender: Option<tokio::sync::mpsc::UnboundedSender<Action>>,
     /// Associated Explorer operation sender, that can send actions to the [`Explorer`]
-    explorer_action_sender: Option<tokio::sync::mpsc::UnboundedSender<Action>>,
+    explorer_action_sender: Option<tokio::sync::mpsc::Sender<Action>>,
     /// Flag to control the available draw area for the [`SearchWidget`]
     /// If the [`crate::ui::info_widget::SystemOverview`] is not visible, than use the whole draw area
     use_whole_draw_area: bool,
@@ -179,7 +179,7 @@ impl SearchWidget {
         self.search_query.clear();
     }
 
-    fn submit_search(&mut self) -> Result<()> {
+    async fn submit_search(&mut self) -> Result<()> {
         // only if the search query does not yet exist, add it to the history
         if !self.history.contains(&self.search_query) {
             self.history.push(self.search_query.clone());
@@ -190,16 +190,17 @@ impl SearchWidget {
             self.search_query.clone(),
             self.mode.depth(),
             self.follow_sym_links,
-        ))?;
+        ))
+        .await?;
         Ok(())
     }
 
     /// Helper function to send a [`Action`] to the [`crate::file_handling::Explorer`]
     /// Set the `is_working` flag to true
-    fn send_explorer_action(&mut self, action: Action) -> Result<()> {
-        if let Some(handler) = &self.explorer_action_sender {
+    async fn send_explorer_action(&mut self, action: Action) -> Result<()> {
+        if let Some(sender) = &self.explorer_action_sender {
             self.is_working = true;
-            handler.send(action)?
+            sender.send(action).await?;
         }
         Ok(())
     }
@@ -232,7 +233,7 @@ impl Component for SearchWidget {
 
     fn register_explorer_action_sender(
         &mut self,
-        tx: tokio::sync::mpsc::UnboundedSender<Action>,
+        tx: tokio::sync::mpsc::Sender<Action>,
     ) -> Result<()> {
         self.explorer_action_sender = Some(tx);
         Ok(())
@@ -273,7 +274,7 @@ impl Component for SearchWidget {
             // Submit search
             crossterm::event::KeyCode::Enter => {
                 if !self.search_query.trim().is_empty() {
-                    self.submit_search()?;
+                    self.submit_search().await?;
                 } else {
                     return Ok(Action::UpdateAppState(AppState::Failure(
                         "Search query must not be empty".to_string(),

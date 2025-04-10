@@ -102,10 +102,10 @@ impl Component for Footer {
         true
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         match action {
             Action::UpdateAppState(state) => {
-                self.app_state = state;
+                self.app_state = state.clone();
                 self.app_state_hint_length =
                     utils::compute_text_length(&self.app_state.to_string()) + 2;
             }
@@ -123,10 +123,10 @@ impl Component for Footer {
                 self.command_desc_length = utils::compute_text_length(&self.command_description);
             }
             Action::SwitchAppContext(context) => {
-                self.app_context = context;
+                self.app_context = *context;
             }
             Action::ToggleTheme(theme) => {
-                self.theme = theme;
+                self.theme = *theme;
             }
             _ => {}
         }

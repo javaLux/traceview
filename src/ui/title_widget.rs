@@ -115,7 +115,7 @@ impl Component for TitleBar {
         true
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         match action {
             Action::Tick => {
                 if self.is_system_overview_showing {

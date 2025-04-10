@@ -130,7 +130,7 @@ pub trait Component {
     ///
     /// * `Result<Option<Action>>` - An action to be processed or none.
     #[allow(unused_variables)]
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         Ok(None)
     }
 

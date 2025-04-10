@@ -139,7 +139,7 @@ impl Component for MetadataPage {
         self.is_active
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         match action {
             Action::ShowFileMetadata(file_path, metadata) => {
                 self.send_app_action(Action::UpdateAppState(AppState::Done("Done".to_string())))?;
@@ -158,7 +158,7 @@ impl Component for MetadataPage {
                 self.send_app_action(Action::UpdateAppState(AppState::Done("Done".to_string())))?;
                 self.metadata.set_items(metadata.get_metadata_rows());
                 self.metadata.state.select(Some(0));
-                self.object_name = metadata.dir_name;
+                self.object_name = metadata.dir_name.clone();
                 self.scrollbar_state = ScrollbarState::new(self.metadata.items.len()).position(0);
                 self.is_active = true;
             }

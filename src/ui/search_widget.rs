@@ -420,20 +420,20 @@ impl Component for SearchWidget {
         self.app_context == AppContext::Search
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         match action {
             Action::SwitchAppContext(context) => {
-                self.app_context = context;
+                self.app_context = *context;
             }
             Action::ShowSearchPage(cwd) => {
-                self.cwd = cwd;
+                self.cwd = cwd.to_path_buf();
                 self.cwd_display_name = utils::format_path_for_display(&self.cwd);
             }
             Action::SearchDone(search_result) => {
                 self.is_working = false;
                 if let Some(result) = search_result {
                     self.reset();
-                    self.send_app_action(Action::ShowResultsPage(result, self.mode))?;
+                    self.send_app_action(Action::ShowResultsPage(result.clone(), self.mode))?;
 
                     return Ok(Action::SwitchAppContext(AppContext::Results).into());
                 } else {
@@ -444,7 +444,7 @@ impl Component for SearchWidget {
                 }
             }
             Action::ToggleTheme(theme) => {
-                self.theme = theme;
+                self.theme = *theme;
             }
             Action::HideOrShowSystemOverview => {
                 self.use_whole_draw_area = !self.use_whole_draw_area;

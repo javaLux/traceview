@@ -142,9 +142,9 @@ impl Component for HelpPage {
         self.is_active
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         if let Action::ShowHelp(caller_context) = action {
-            self.caller_context = caller_context;
+            self.caller_context = *caller_context;
             self.is_active = true;
         }
 

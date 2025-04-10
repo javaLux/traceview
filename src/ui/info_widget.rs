@@ -333,7 +333,7 @@ impl Component for SystemOverview {
         self.is_active
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         match action {
             Action::Tick => {
                 if self.is_active {
@@ -341,7 +341,7 @@ impl Component for SystemOverview {
                 }
             }
             Action::ToggleTheme(theme) => {
-                self.theme = theme;
+                self.theme = *theme;
             }
             Action::HideOrShowSystemOverview => {
                 self.is_active = !self.is_active;

@@ -474,7 +474,10 @@ impl Component for ResultWidget {
                         let json_value = entry.build_as_json();
                         // Send to writer
                         if let Err(err) = tx_clone.send(json_value).await {
-                            log::error!("Failed to send JSON value to writer task - Details {:?}", err);
+                            log::error!(
+                                "Failed to send JSON value to writer task - Details {:?}",
+                                err
+                            );
                             break;
                         }
                     }
@@ -496,14 +499,14 @@ impl Component for ResultWidget {
         Ok(None)
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         match action {
             Action::SwitchAppContext(context) => {
-                self.app_context = context;
+                self.app_context = *context;
             }
             Action::ShowResultsPage(result, mode) => {
-                self.applied_search_mode = mode;
-                self.search_result = result;
+                self.applied_search_mode = *mode;
+                self.search_result = result.clone();
                 self.search_result.set_terminal_height(self.terminal_height);
                 self.table_state
                     .select(self.search_result.selected().into());
@@ -516,7 +519,7 @@ impl Component for ResultWidget {
                 match metadata {
                     Some(metadata) => {
                         self.is_metadata_pop_up = true;
-                        return Ok(Action::ShowDirMetadata(metadata).into());
+                        return Ok(Action::ShowDirMetadata(metadata.clone()).into());
                     }
                     None => {
                         self.send_app_action(Action::UpdateAppState(AppState::Failure(
@@ -533,12 +536,12 @@ impl Component for ResultWidget {
             }
             Action::ExportFailure(msg) => {
                 self.is_working = false;
-                return Ok(Action::UpdateAppState(AppState::Failure(msg)).into());
+                return Ok(Action::UpdateAppState(AppState::Failure(msg.clone())).into());
             }
             Action::CloseMetadata => self.is_metadata_pop_up = false,
             Action::Resize(_, h) => {
                 // update the terminal height
-                self.terminal_height = h;
+                self.terminal_height = *h;
                 self.search_result.set_terminal_height(self.terminal_height);
                 // reset the start index and selected index to ensure that the selected object is no longer in the field of view
                 self.search_result.reset_state();
@@ -552,7 +555,7 @@ impl Component for ResultWidget {
                 }
             }
             Action::ToggleTheme(theme) => {
-                self.theme = theme;
+                self.theme = *theme;
             }
             Action::HideOrShowSystemOverview => {
                 self.use_whole_draw_area = !self.use_whole_draw_area;

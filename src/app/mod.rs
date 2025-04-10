@@ -227,7 +227,7 @@ impl App {
 
                 // Update App components dependent on the received Action
                 for component in self.components.iter_mut() {
-                    if let Some(action) = component.update(action.clone()).await? {
+                    if let Some(action) = component.update(&action).await? {
                         component_tx.send(action)?
                     };
                 }

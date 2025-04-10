@@ -428,14 +428,14 @@ impl Component for ExplorerWidget {
         }
     }
 
-    async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    async fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         match action {
             Action::SwitchAppContext(context) => {
-                self.app_context = context;
+                self.app_context = *context;
             }
             Action::LoadDirDone(explorer) => {
                 self.is_working = false;
-                self.explorer = explorer;
+                self.explorer = explorer.clone();
                 self.filtered_entries.reset();
                 self.list_state.select(self.explorer.selected().into());
                 self.explorer.set_terminal_height(self.terminal_height);
@@ -446,7 +446,7 @@ impl Component for ExplorerWidget {
                 match metadata {
                     Some(metadata) => {
                         self.is_metadata_pop_up = true;
-                        return Ok(Action::ShowDirMetadata(metadata).into());
+                        return Ok(Action::ShowDirMetadata(metadata.clone()).into());
                     }
                     None => {
                         self.send_app_action(Action::UpdateAppState(AppState::Failure(
@@ -461,7 +461,7 @@ impl Component for ExplorerWidget {
                 self.filtered_entries.reset();
 
                 // update the terminal height
-                self.terminal_height = h;
+                self.terminal_height = *h;
                 self.explorer.set_terminal_height(self.terminal_height);
                 // reset the start index and selected index to ensure that the selected object is no longer in the field of view
                 self.explorer.reset_state();
@@ -473,7 +473,7 @@ impl Component for ExplorerWidget {
                 }
             }
             Action::ToggleTheme(theme) => {
-                self.theme = theme;
+                self.theme = *theme;
             }
             Action::HideOrShowSystemOverview => {
                 self.use_whole_draw_area = !self.use_whole_draw_area;

@@ -644,7 +644,7 @@ impl Component for ResultWidget {
                             let mut highlighted = highlight_text_part(
                                 name,
                                 self.search_result.search_query(),
-                                self.theme.theme_colors().highlight_color,
+                                self.theme.theme_colors().search_highlight_color,
                                 self.theme.theme_colors().alt_fg,
                             );
                             highlighted
@@ -654,7 +654,7 @@ impl Component for ResultWidget {
                         None => highlight_text_part(
                             shorten_path,
                             self.search_result.search_query(),
-                            self.theme.theme_colors().highlight_color,
+                            self.theme.theme_colors().search_highlight_color,
                             self.theme.theme_colors().alt_fg,
                         ),
                     };

@@ -530,6 +530,7 @@ impl Component for ExplorerWidget {
                     }),
             )
             .highlight_spacing(HighlightSpacing::Always)
+            .highlight_style(Style::new().fg(theme_colors.alt_fg))
             .highlight_symbol(HIGHLIGHT_SYMBOL)
             .block(
                 Block::default()

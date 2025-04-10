@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.0.3] - 2025-04-15
+- update dependencies
+- small UI improvements
+- Optimization of memory usage
+- reduce the file size of the `search_result.json` file by removing pretty formatted JSON
+
+### Added
+- It is now possible to copy the `About-Window` information as JSON to the clipboard by pressing `Ctrl+C`
+<br>
+
+
 ## [1.0.2] - 2025-03-23
 - update dependencies
 

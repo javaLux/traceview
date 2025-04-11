@@ -16,8 +16,8 @@ rust-version = "1.74.0"
 #Common dependencies ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [dependencies]
 anyhow = "1.0.97"
-clap = { version = "4.5.35", features = ["derive", "cargo", "string"] }
-crossterm = { version = "0.28.1", default-features = false, features = ["event-stream", "serde"] }
+clap = { version = "4.5.36", features = ["derive", "cargo", "string"] }
+crossterm = { version = "=0.28.1", default-features = false, features = ["event-stream", "serde"] }
 ratatui = "0.29.0"
 tokio = { version = "1.44.2", default-features = false, features = ["macros", "time", "rt-multi-thread", "fs"] }
 tokio-util = "0.7.14"

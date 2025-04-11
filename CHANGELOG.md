@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.0.3] - 2025-04-15
+## [1.0.3] - 2025-04-11
 - update dependencies
 - small UI improvements
 - Optimization of memory usage

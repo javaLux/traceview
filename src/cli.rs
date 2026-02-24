@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     app::config::CONFIG_NAME,
-    utils::{absolute_path_as_string, config_dir, format_path_for_display, version},
+    utils::{absolute_path_as_string, config_dir, data_dir, format_path_for_display},
 };
 use clap::Parser;
 
@@ -12,28 +12,8 @@ pub struct Cli {
     #[arg(
         short,
         long,
-        value_name = "INTEGER",
-        help = "Refresh rate, i.e. ticks per second the system usage should be updated [max. 5]",
-        default_value_t = 1,
-        value_parser = clap::value_parser!(u8).range(1..=5),
-    )]
-    pub refresh_rate: u8,
-
-    #[arg(
-        short,
-        long,
-        value_name = "INTEGER",
-        help = "Frame rate, i.e. the number of frames rendered per second [max. 60]",
-        default_value_t = 45,
-        value_parser = clap::value_parser!(u8).range(1..=60),
-    )]
-    pub frame_rate: u8,
-
-    #[arg(
-        short,
-        long,
         value_name = "FILE",
-        help = format!("Set a specific config file [default: {}]", format_path_for_display(absolute_path_as_string(config_dir().join(CONFIG_NAME)))),
+        help = format!("Set a custom config file [default: {}]", format_path_for_display(absolute_path_as_string(config_dir().join(CONFIG_NAME)))),
         value_parser = validate_config_file,
     )]
     pub config: Option<PathBuf>,
@@ -47,4 +27,27 @@ fn validate_config_file(config: &str) -> Result<PathBuf, String> {
     } else {
         Ok(path)
     }
+}
+
+/// Extends the default ``clap --version`` with a custom version message
+pub fn version() -> String {
+    let authors = env!("CARGO_PKG_AUTHORS").replace(":", ", ");
+    let version = env!("CARGO_PKG_VERSION");
+    let repo = env!("CARGO_PKG_REPOSITORY");
+
+    let config_dir = format_path_for_display(absolute_path_as_string(config_dir()));
+    let data_dir = format_path_for_display(absolute_path_as_string(data_dir()));
+
+    println!();
+    format!(
+        "\
+    --- developed with ♥ in Rust
+    Authors          : {authors}
+    Version          : {version}
+    Repository       : {repo}
+
+    Config directory : {config_dir}
+    Data directory   : {data_dir}
+    "
+    )
 }

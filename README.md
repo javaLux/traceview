@@ -6,7 +6,7 @@
 
 # TraceView
 
-A fast and feature-rich TUI (Text-based User Interface) application written in Rust. It enables users to navigate the local filesystem, monitor system resources, search for files and directories, retrieve metadata, and export search results to JSON. The app is configurable via a `config.toml` file and provides a smooth user experience with different themes.
+A fast and feature-rich TUI (Text-based User Interface) application written in Rust. It enables users to navigate the local filesystem, monitor system resources, search for files and directories, retrieve metadata, and export search results to JSON.
 
 ---
 
@@ -14,15 +14,15 @@ A fast and feature-rich TUI (Text-based User Interface) application written in R
 
 ---
 
-## 🧩 Features
+## Features
 - **Filesystem Explorer**: Quickly browse and navigate local directories.
 - **System Overview**: Monitor CPU, Swap, memory, and disk usage in real-time.
 - **File & Directory Search**: Search files and folders by name with instant results.
 - **Metadata Retrieval**: View file and directory metadata (size, permissions, last modified, and more).
 - **Export Functionality**: Save search results as JSON files.
-- **Configurable Settings**: Customize behavior and appearance via `config.toml`.
+- **Configurable Settings**: Customize behavior and appearance via the Built-in Settings-Page
 - **Themes**: Choose from **Dark**, **Light**, **Dracula**, and **Indigo** themes.
-- **Help Page**: Built-in help page with keybindings and usage instructions.
+- **Help Page**: Built-in Help-Page with keybindings and descriptions.
 - **Status Bar**: Displays current context, active theme, last keystroke, and error messages in real-time.
 
 ---
@@ -30,7 +30,7 @@ A fast and feature-rich TUI (Text-based User Interface) application written in R
 <br>
 
 ## Getting Started
-### 📦 Installation
+### Installation
 There are three ways to get started with TraceView:
 
 #### Option 1: Build from Source
@@ -88,27 +88,19 @@ TraceView is available on [crates.io](https://crates.io/crates/traceview), allow
 
 <br>
 
-## ⚙️ Configuration
-TraceView is configurable via the `config.toml` file located in the Config-Directory. Below is the structure of the default configuration file:
-
-```toml
-theme = "Dark"
-start_dir = "<User Home Dir>"
-export_dir = "<Application Data Directory>"
-follow_sym_links = false
-```
-* You can see the applied configurations at any time in the app by pressing `F2`.
+## Configuration
+TraceView is configurable via the built-in Settings-Page. To open it, press `F3`. The App-Settings are stored in a file named `config.toml`.
+This file is located in the App Config-Directory.
 
 ### Configuration Options
-- **theme**: Describes the default theme on startup. Accepted values: "Dark", "Light", "Dracula", "Indigo".
-  - **Default:** "Dark"
-- **start_dir**: Describes the directory in which the file explorer should start. Leave empty to start in the current working directory.
-  - **Default:** User's home directory
-- **export_dir**: Describes the destination directory where the JSON export results will be saved.
-  - **Default:** Application data directory
-- **follow_sym_links**: Influences the file explorer, file/directory name search, and the recording of metadata for directories.
-  - **What are symbolic links?** Symbolic links (or symlinks) are pointers to other files or directories. When this option is set to `true`, TraceView follows these links during navigation and searches, potentially traversing linked paths. When set to `false`, symlinks are ignored to avoid accidental infinite loops or unintended directory traversals.
-  - **Default:** false
+- **Default-Theme**: Describes the default theme on startup. Default is the `Dark-Theme`.
+- **Start-Directory**: Describes the directory in which the file explorer should start. Default is the `User-Home-Directory`.
+- **Export-Directory**: Describes the destination directory where the JSON export results will be saved. Default is the `Application data directory`.
+- **Follow symbolic links**: Influences the file explorer, file/directory name search, and the recording of metadata for directories. Default is `false`.
+  - **What are symbolic links?** Symbolic links (or symlinks) are pointers to other files or directories. When this option is set to `true`, TraceView follows these links during navigation and searches, potentially traversing linked paths.
+- **Frames per second**: Frames per second to be rendered on screen. Default is `45`
+- **Update rate (System-Resources)**: Update rate of the system resources per second. Default is `1`
+
 
 ### ⚠️ Invalid Configuration Handling
 If any settings in `config.toml` are incorrect or cannot be interpreted:
@@ -117,35 +109,25 @@ If any settings in `config.toml` are incorrect or cannot be interpreted:
 - Users should consult the log file for details on which settings failed to load and why.
 
 ### Command-Line Interface (CLI) Options
-In addition to the `config.toml` file, TraceView supports command-line options for quick configuration overrides:
 
-| Option | Description | Default | Constraints |
-|--------|-------------|---------|-------------|
-| `-r`, `--refresh-rate <INTEGER>` | Refresh rate (ticks per second for system usage updates) | 1 | Maximum: 5 |
-| `-f`, `--frame-rate <INTEGER>`   | Frame rate (frames rendered per second)                | 45 | Maximum: 60 |
-| `-c`, `--config <FILE>`          | Use a specific configuration file                      | `<The default config file located in the Config-Dir>` | - |
+| Option | Description |
+|--------|-------------|
+| `-h`, `--help` | Print help |
+| `-V`, `--version` | Print version |
+| `-c`, `--config <FILE>` | Set a custom config file [default: ~/.config/traceview/config.toml] |
 
-**Advantages of CLI options:**
-- Override configuration settings without editing the default config file.
-- Useful for temporary adjustments (e.g., increasing refresh rate during a session).
-- Quick testing with different configurations.
-
-Example usage:
-```bash
-traceview -r 2 -f 30 -c "/path/to/custom_config.toml"
-```
 ---
 
 <br>
 
-## 🎨 Themes
+## Themes
 Supported themes:
 - **Dark** – High contrast for low-light environments (default)
 - **Light** – Bright theme for well-lit spaces
 - **Dracula** – Vibrant dark theme with colorful highlights
 - **Indigo** – Calming theme with indigo tones
 
-To change the theme you can press `Tab` within the app or if you want to set a default theme on startup, update the `theme` value in `config.toml` file.
+To change the theme you can press `Ctrl + T` within the app. Furthermore, the default theme can be set at startup via the Settings-Page.
 
 ---
 
@@ -160,7 +142,7 @@ TraceView operates in three primary contexts, each with context-specific control
 
 * Please use the provided help page by pressing `F1` to view all keyboard shortcuts and their context.
 
-## 🧮 Status Bar Features
+## Status Bar Features
 The status bar, located at the bottom of the interface, provides:
 - **Current Context**: Shows whether you are in Explorer, Search, or Result context.
 - **Active Theme**: Displays the currently applied theme.
@@ -170,7 +152,7 @@ The status bar, located at the bottom of the interface, provides:
 
 <br>
 
-## 🔎 Searching by File or Directory Name
+## Searching by File or Directory Name
 TraceView provides a powerful search feature that allows users to search specifically for **file and directory names**. The search functionality focuses only on names, making it possible to:
 - Search for specific filenames.
 - Search by partial matches (e.g., typing "log" to find "app_log.txt").
@@ -198,7 +180,7 @@ TraceView offers two search modes:
 
 <br>
 
-## 🗂️ Capturing File and Directory Metadata
+## Capturing File and Directory Metadata
 TraceView allows users to capture metadata (press `Ctrl + A` in Explorer Context), for both files and directories with the following considerations:
 
 ### File Metadata
@@ -217,7 +199,7 @@ TraceView allows users to capture metadata (press `Ctrl + A` in Explorer Context
 
 <br>
 
-## ⏳ If Things Take a Long Time
+## If Things Take a Long Time
 Some operations in TraceView, such as searching for files/directories or exporting search results, may take longer to complete depending on the size and complexity of the filesystem. 
 
 **Cancel Ongoing Processes:**  
@@ -227,23 +209,22 @@ Some operations in TraceView, such as searching for files/directories or exporti
 
 <br>
 
-## 🚫 Limitations & Future Plans
+## 🚫 Limitations
 While TraceView offers a variety of features for browsing, searching, and viewing metadata, it is important to note that **it is not a full-fledged file explorer**. As such:
 - **File or directory manipulation (copying, moving, deleting, or renaming) is not supported.**
-- **These features may be planned for a future release** to enhance the app’s file management capabilities.
 - TraceView is currently designed to provide safe, read-only access to filesystem information without risking unintended file modifications.
 ---
 
 <br>
 
-## 🛡️ License
+## License
 This project is licensed under the MIT License.
 
 ---
 
 <br>
 
-## 🧰 Built With ❤️ in Rust and these awesome crates
+## Built With ❤️ in Rust and these awesome crates
 Thanks to the developers of these crates, without whom `TraceView` would not exist<br>
 - **[Ratatui](https://crates.io/crates/ratatui)** – Rust-based library for building rich terminal user interfaces.
 - **[Walkdir](https://crates.io/crates/walkdir)** – Efficient directory traversal for Rust projects.
@@ -252,14 +233,15 @@ Thanks to the developers of these crates, without whom `TraceView` would not exi
 
 <br>
 
-## 🧪 Tested Platforms
+## Tested Platforms
 TraceView has been tested on the following operating systems and environments:
 
 | Operating System | Version         | Terminal/Shell                                  | CPU-Arch |
 |------------------|-----------------|-------------------------------------------------|-----------
-| Windows          | 10 (Pro)        | Windows Terminal, PowerShell                    | x86_64   |
-| Ubuntu Linux     | 24.10           | GNOME-Terminal / bash, zsh                      | x86_64   |
-| Linux Mint       | 22.1            | GNOME-Terminal / bash, zsh                      | x86_64   |
+| Windows          | 10/11           | Windows Terminal, PowerShell                    | x86_64   |
+| Ubuntu Linux     | 25.04           | GNOME-Terminal / bash, zsh                      | x86_64   |
+| Linux Mint       | 22.3            | GNOME-Terminal / bash, zsh                      | x86_64   |
+| EndeavourOS      | Ganymede Neo    | KDE-Terminal                                    | x86_64   |
 | macOS            | Monterey (12.x) | iTerm2 / zsh                                    | x86_64   |
 
 ### Notice
@@ -269,7 +251,7 @@ When testing under MacOs, I noticed that the standard terminal does not fully su
 
 <br>
 
-## 🛠️ Troubleshooting
+## Troubleshooting
 ### Windows Terminal Freeze Issue
 If you experience the app freezing when clicking inside the terminal window with the **left mouse button** on Windows, this is due to the terminal's default behavior of entering "selection mode." In this mode, terminal input is paused while text is being selected. To avoid this issue:
 - Use keyboard navigation instead of mouse clicks.
@@ -287,21 +269,19 @@ If an error appears in the status bar:
 
 <br>
 
-## 🤝 **Collaboration, Feedback & Bug Reports**
+## **Collaboration, Feedback & Bug Reports**
 I welcome feedback, suggestions, and bug reports! Your input helps make TraceView better.
 
 ### How to Contribute
-- Report issues or suggestions via [GitHub Issues](https://github.com/javaLux/traceview/issues).
-- Submit pull requests to improve the code or documentation.
-- Share your thoughts to help shape future features.
+1. **Fork** this repository.
+2. **Create a new branch** for your changes.
+3. Make your changes, ensuring they are clean and well-documented.
+4. **Commit** your changes with a meaningful message.
+5. **Push** your branch to your fork.
+6. Open a pull request from your branch to the main repository.
 
 ### Found a Bug?
-- Check if it’s already reported.
-- If new, open an issue with details and reproduction steps.
-- Attach logs (in `data` directory) for faster diagnosis.
-
-### I Appreciate Your Feedback!
-Your ideas and input make TraceView more user-friendly. Don’t hesitate to reach out.
+- Report issues or suggestions via [GitHub Issues](https://github.com/javaLux/traceview/issues).
 
 <br>
 

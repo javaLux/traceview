@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use ratatui::prelude::*;
 
 use crate::{
-    app::{actions::Action, config::AppConfig, AppContext, AppState},
+    app::{AppContext, AppState, actions::Action, config::AppConfig},
     component::Component,
     ui::{self, Theme},
     utils,
@@ -11,7 +11,7 @@ use crate::{
 
 const APP_CONTEXT_TITLE: &str = "Context: ";
 const APP_CONTEXT_LENGTH: u16 = 17;
-const KEYSTROKE_TITLE: &str = "Keystroke: ";
+const KEYSTROKE_TITLE: &str = "Last Key-Press: ";
 const THEME_HINT_TITLE: &str = "Theme: ";
 const THEME_HINT_LENGTH: u16 = 14;
 const SPACER_LENGTH: u16 = 2;
@@ -138,20 +138,30 @@ impl Component for Footer {
         if self.should_render() {
             let draw_area = ui::get_main_layout(area).footer_area;
 
-            let [first_spacer, context_hint_area, second_spacer, theme_hint_area, third_spacer, key_hint_area, fourth_spacer, command_desc_area, fifth_spacer, app_state_area] =
-                Layout::horizontal([
-                    Constraint::Length(1),
-                    Constraint::Length(APP_CONTEXT_LENGTH),
-                    Constraint::Length(SPACER_LENGTH),
-                    Constraint::Length(THEME_HINT_LENGTH),
-                    Constraint::Length(SPACER_LENGTH),
-                    Constraint::Length(self.key_event_length),
-                    Constraint::Length(1),
-                    Constraint::Length(self.command_desc_length),
-                    Constraint::Length(SPACER_LENGTH),
-                    Constraint::Fill(1),
-                ])
-                .areas(draw_area);
+            let [
+                first_spacer,
+                context_hint_area,
+                second_spacer,
+                theme_hint_area,
+                third_spacer,
+                key_hint_area,
+                fourth_spacer,
+                command_desc_area,
+                fifth_spacer,
+                app_state_area,
+            ] = Layout::horizontal([
+                Constraint::Length(1),
+                Constraint::Length(APP_CONTEXT_LENGTH),
+                Constraint::Length(SPACER_LENGTH),
+                Constraint::Length(THEME_HINT_LENGTH),
+                Constraint::Length(SPACER_LENGTH),
+                Constraint::Length(self.key_event_length),
+                Constraint::Length(1),
+                Constraint::Length(self.command_desc_length),
+                Constraint::Length(SPACER_LENGTH),
+                Constraint::Fill(1),
+            ])
+            .areas(draw_area);
 
             let context_hint = Line::from(vec![
                 Span::styled(APP_CONTEXT_TITLE, self.theme.theme_colors().main_fg),

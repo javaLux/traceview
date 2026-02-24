@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::{Context, Result};
 use console::style;
 use crossterm::event::{KeyCode, KeyModifiers};
@@ -13,7 +15,8 @@ use crate::{
     ui::{
         about_widget::AboutPage, explorer_widget::ExplorerWidget, footer_widget::Footer,
         help_widget::HelpPage, info_widget::SystemOverview, metadata_widget::MetadataPage,
-        result_widget::ResultWidget, search_widget::SearchWidget, title_widget::TitleBar,
+        result_widget::ResultWidget, search_widget::SearchWidget, settings_widget::SettingsPage,
+        title_widget::TitleBar,
     },
 };
 
@@ -78,19 +81,16 @@ impl std::fmt::Display for AppState {
 
 /// Application
 pub struct App {
+    config_path: PathBuf,
     config: AppConfig,
     components: Vec<Box<dyn Component>>,
-    /// Refresh rate, i.e. ticks per second the system usage should be updated
-    tick_rate: f64,
-    /// Frame rate, i.e. number of frames per second
-    frame_rate: f64,
     should_quit: bool,
     is_forced_shutdown: bool,
 }
 
 impl App {
     /// Constructs a new instance of [`App`].
-    pub fn new(tick_rate: u8, frame_rate: u8, config: AppConfig) -> Self {
+    pub fn new(config: AppConfig, config_path: PathBuf) -> Self {
         let title_bar = TitleBar::default();
         let sys_info = SystemOverview::default();
         let file_explorer =
@@ -100,9 +100,11 @@ impl App {
         let footer = Footer::default();
         let help_page = HelpPage::default();
         let about_page = AboutPage::default();
+        let settings_page = SettingsPage::default();
         let metadata_page = MetadataPage::default();
 
         Self {
+            config_path,
             config,
             components: vec![
                 Box::new(title_bar),
@@ -113,10 +115,9 @@ impl App {
                 Box::new(footer),
                 Box::new(help_page),
                 Box::new(about_page),
+                Box::new(settings_page),
                 Box::new(metadata_page),
             ],
-            tick_rate: tick_rate as f64,
-            frame_rate: frame_rate as f64,
             should_quit: false,
             is_forced_shutdown: false,
         }
@@ -128,9 +129,10 @@ impl App {
         let (component_tx, mut component_rx) = mpsc::unbounded_channel::<Action>();
 
         // build the TUI
-        let mut tui = tui::Tui::new()?
-            .tick_rate(self.tick_rate)
-            .frame_rate(self.frame_rate);
+        let mut tui = tui::Tui::new()?;
+
+        tui.tick_rate(self.config.system_update_rate() as f64);
+        tui.frame_rate(self.config.fps() as f64);
 
         // init the TUI and starts the TUI-Event-Handler loop
         tui.enter()?;
@@ -195,7 +197,19 @@ impl App {
 
             // handle application actions
             while let Ok(action) = component_rx.try_recv() {
-                match action {
+                match &action {
+                    Action::ApplyAppSettings(c) => {
+                        // Restart TUI only if fps or system update rate has been changed
+                        if c.fps() != self.config.fps()
+                            || c.system_update_rate() != self.config.system_update_rate()
+                        {
+                            tui.stop();
+                            tui.tick_rate(c.system_update_rate() as f64);
+                            tui.frame_rate(c.fps() as f64);
+                            tui.start();
+                        }
+                        self.config = c.clone();
+                    }
                     Action::ForcedShutdown => self.is_forced_shutdown = true,
                     Action::Quit => self.should_quit = true,
                     // draw to the screen buffer only if Action::Render or Action::Resize will received
@@ -208,7 +222,7 @@ impl App {
                         .with_context(|| "Failed to render UI on screen")?;
                     }
                     Action::Resize(w, h) => {
-                        tui.resize(Rect::new(0, 0, w, h))?;
+                        tui.resize(Rect::new(0, 0, *w, *h))?;
                         tui.draw(|f| {
                             for component in self.components.iter_mut() {
                                 let _ = component.render(f, f.area());
@@ -251,13 +265,25 @@ impl App {
                 FORCED_SHUTDOWN_MSG
             )
         } else {
-            log::info!("[{}] => {}", APP_NAME, GRACEFUL_SHUTDOWN_MSG);
-            println!(
-                "{} [{}] => {}",
-                style("[INFO]").color256(40), // 40 = Light green
-                APP_NAME,
-                GRACEFUL_SHUTDOWN_MSG
-            )
+            // Try to save app configuration
+            if let Err(err) = self.config.save_config(&self.config_path) {
+                let err_title = "Failed to save app settings";
+                log::error!("{} - {:?}", err_title, err);
+                println!(
+                    "{} [{}] => {}",
+                    style("[WARN]").yellow().bold(),
+                    APP_NAME,
+                    err_title
+                )
+            } else {
+                log::info!("[{}] => {}", APP_NAME, GRACEFUL_SHUTDOWN_MSG);
+                println!(
+                    "{} [{}] => {}",
+                    style("[INFO]").color256(40), // 40 = Light green
+                    APP_NAME,
+                    GRACEFUL_SHUTDOWN_MSG
+                )
+            }
         }
 
         Ok(())

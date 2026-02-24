@@ -49,7 +49,9 @@ pub fn initialize_panic_hook() -> Result<()> {
 
 /// Set the `RUST_BACKTRACE=1` env var to be able to capture a backtrace in case of the app is panicked.
 fn set_rust_backtrace() {
-    std::env::set_var("RUST_BACKTRACE", "1");
+    unsafe {
+        std::env::set_var("RUST_BACKTRACE", "1");
+    }
 }
 
 /// Environment variables Cargo sets for crates.

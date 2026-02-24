@@ -3,7 +3,9 @@ use async_trait::async_trait;
 use ratatui::{prelude::*, widgets::*};
 use std::time::Instant;
 
-use crate::{app::actions::Action, component::Component, tui::Event, ui::get_main_layout};
+use crate::{
+    app::actions::Action, component::Component, tui::Event, ui::get_main_layout, utils::app_name,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct TitleBar {
@@ -27,15 +29,6 @@ impl Default for TitleBar {
 
 impl TitleBar {
     fn new() -> Self {
-        let app_name = {
-            let name = env!("CARGO_PKG_NAME").trim().to_string();
-            if !name.is_empty() {
-                name
-            } else {
-                "Unknown".to_string()
-            }
-        };
-
         #[cfg(target_os = "windows")]
         let bg_color = Color::Cyan;
 
@@ -46,7 +39,7 @@ impl TitleBar {
         let bg_color = Color::Cyan;
 
         Self {
-            app_name,
+            app_name: app_name(),
             help_hint: String::from("Press <F1> for help"),
             app_start_time: Instant::now(),
             app_frames: 0,
@@ -176,7 +169,9 @@ impl Component for TitleBar {
 
             let meta_data = Paragraph::new(Span::styled(
                 rate_meta_data,
-                Style::default().fg(Color::Black),
+                Style::default()
+                    .fg(Color::Black)
+                    .add_modifier(Modifier::BOLD),
             ))
             .style(Style::default().bg(self.bg_color))
             .alignment(Alignment::Right);

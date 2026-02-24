@@ -117,6 +117,10 @@ impl<T> StatefulList<T> {
         StatefulList { state, items }
     }
 
+    pub fn current_item(&self) -> Option<&T> {
+        self.state.selected().and_then(|i| self.items.get(i))
+    }
+
     pub fn get_slice_of_items(&self, start: usize, end: usize) -> &[T] {
         if start < end && self.items.len() >= end {
             &self.items[start..end]
@@ -181,6 +185,10 @@ impl<T> StatefulTable<T> {
         }
         table.set_items(items);
         table
+    }
+
+    pub fn current_item(&self) -> Option<&T> {
+        self.items.get(self.selected_item)
     }
 
     pub fn set_items(&mut self, items: Vec<T>) {

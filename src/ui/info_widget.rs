@@ -8,7 +8,7 @@ use crate::{
     component::Component,
     system::SystemDetails,
     tui::Event,
-    ui::{get_main_layout, Theme},
+    ui::{Theme, get_main_layout},
     utils,
 };
 
@@ -53,7 +53,7 @@ impl SystemOverview {
         self.system_details.refresh()
     }
 
-    fn get_sys_info_lines(&self) -> (Vec<Line>, Vec<Line>) {
+    fn get_sys_info_lines(&self) -> (Vec<Line<'_>>, Vec<Line<'_>>) {
         let theme_colors = self.theme.theme_colors();
 
         let system_keys: Vec<Line> = vec![
@@ -105,7 +105,7 @@ impl SystemOverview {
         (system_keys, system_values)
     }
 
-    fn get_resource_info_lines(&self) -> (Vec<Line>, Vec<Line>) {
+    fn get_resource_info_lines(&self) -> (Vec<Line<'_>>, Vec<Line<'_>>) {
         let theme_colors = self.theme.theme_colors();
 
         let resource_keys = vec![
@@ -226,18 +226,22 @@ impl SystemOverview {
 
         let inner_block = memory_block.inner(area);
 
-        let [cpu_gauge_area, disk_gauge_area, memory_gauge_area, swap_gauge_area] =
-            Layout::vertical([
-                Constraint::Length(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-            ])
-            .areas(inner_block);
+        let [
+            cpu_gauge_area,
+            disk_gauge_area,
+            memory_gauge_area,
+            swap_gauge_area,
+        ] = Layout::vertical([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Length(1),
+        ])
+        .areas(inner_block);
 
         let cpu_label = format!("CPU     {:.1}%", self.system_details.cpu_usage);
         let cpu_gauge = LineGauge::default()
-            .line_set(symbols::line::THICK)
+            .filled_symbol(symbols::line::THICK_HORIZONTAL)
             .filled_style(get_gauge_color(self.system_details.cpu_usage as f64))
             .ratio(self.system_details.cpu_usage as f64 / 100.0)
             .fg(theme_colors.alt_bg)
@@ -249,7 +253,7 @@ impl SystemOverview {
         );
         let disk_label = format!("Disk    {:.1}%", disk_usage_value);
         let disk_gauge = LineGauge::default()
-            .line_set(symbols::line::THICK)
+            .filled_symbol(symbols::line::THICK_HORIZONTAL)
             .filled_style(get_gauge_color(disk_usage_value))
             .ratio(disk_usage_value / 100.0)
             .fg(theme_colors.alt_bg)
@@ -263,7 +267,7 @@ impl SystemOverview {
         let memory_label = format!("Memory  {:.1}%", memory_usage_value);
 
         let memory_gauge = LineGauge::default()
-            .line_set(symbols::line::THICK)
+            .filled_symbol(symbols::line::THICK_HORIZONTAL)
             .filled_style(get_gauge_color(memory_usage_value))
             .ratio(memory_usage_value / 100.0)
             .fg(theme_colors.alt_bg)
@@ -277,7 +281,7 @@ impl SystemOverview {
         let swap_label = format!("Swap    {:.1}%", swap_usage_value);
 
         let swap_gauge = LineGauge::default()
-            .line_set(symbols::line::THICK)
+            .filled_symbol(symbols::line::THICK_HORIZONTAL)
             .filled_style(get_gauge_color(swap_usage_value))
             .ratio(swap_usage_value / 100.0)
             .fg(theme_colors.alt_bg)

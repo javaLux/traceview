@@ -3,18 +3,12 @@ use async_trait::async_trait;
 use ratatui::{prelude::*, style::palette::tailwind, widgets::*};
 
 use crate::{
-    app::{actions::Action, key_bindings, AppContext},
+    app::{AppContext, actions::Action, key_bindings},
     component::Component,
     models::{Scrollable, StatefulTable},
     tui::Event,
     ui::{HIGHLIGHT_SYMBOL, PALETTES},
 };
-
-// const INFO_TEXT: &str =
-//     " Help | <Esc> close | (↑) move up | (↓) move down | (→) next color | (←) previous color ";
-
-const BLOCK_TITLE_SCROLLABLE: &str = " Help | <Esc> close | (↑) move up | (↓) move down ";
-const BLOCK_TITLE: &str = " Help | <Esc> close ";
 
 #[derive(Debug)]
 struct TableColors {
@@ -48,25 +42,9 @@ pub struct HelpPage {
     border_type: BorderType,
     title_style: Style,
     help_docs: StatefulTable<Vec<String>>,
-    scrollbar_vertical_state: ScrollbarState,
+    scrollbar_state: ScrollbarState,
     colors: TableColors,
-    color_index: usize,
     is_active: bool,
-}
-
-impl HelpPage {
-    pub fn _next_color(&mut self) {
-        self.color_index = (self.color_index + 1) % PALETTES.len();
-    }
-
-    pub fn _previous_color(&mut self) {
-        let count = PALETTES.len();
-        self.color_index = (self.color_index + count - 1) % count;
-    }
-
-    pub fn set_colors(&mut self) {
-        self.colors = TableColors::new(&PALETTES[self.color_index]);
-    }
 }
 
 impl Default for HelpPage {
@@ -77,12 +55,30 @@ impl Default for HelpPage {
             border_type: BorderType::Rounded,
             title_style: Default::default(),
             help_docs: StatefulTable::with_items(key_bindings::get_help_docs()),
-            scrollbar_vertical_state: ScrollbarState::new(key_bindings::get_help_docs().len())
-                .position(0),
+            scrollbar_state: ScrollbarState::new(key_bindings::get_help_docs().len()).position(0),
             colors: TableColors::new(&PALETTES[0]),
-            color_index: Default::default(),
             is_active: Default::default(),
         }
+    }
+}
+
+impl HelpPage {
+    fn block_title_scroll() -> ratatui::prelude::Line<'static> {
+        Line::from(vec![
+            Span::raw(" Help | "),
+            Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
+            Span::raw("Close "),
+            Span::styled(" <↑↓> ", Style::default().fg(Color::Yellow)),
+            Span::raw("Scroll "),
+        ])
+    }
+
+    fn block_title() -> ratatui::prelude::Line<'static> {
+        Line::from(vec![
+            Span::raw(" Help | "),
+            Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
+            Span::raw("Close "),
+        ])
     }
 }
 
@@ -112,21 +108,17 @@ impl Component for HelpPage {
         match key.code {
             crossterm::event::KeyCode::Up => {
                 self.help_docs.scroll_up_by(1);
-                self.scrollbar_vertical_state = self
-                    .scrollbar_vertical_state
-                    .position(self.help_docs.selected_item);
+                self.scrollbar_state = self.scrollbar_state.position(self.help_docs.selected_item);
                 Ok(None)
             }
             crossterm::event::KeyCode::Down => {
                 self.help_docs.scroll_down_by(1);
-                self.scrollbar_vertical_state = self
-                    .scrollbar_vertical_state
-                    .position(self.help_docs.selected_item);
+                self.scrollbar_state = self.scrollbar_state.position(self.help_docs.selected_item);
                 Ok(None)
             }
             crossterm::event::KeyCode::Esc => {
                 self.help_docs.state.select(Some(0));
-                self.scrollbar_vertical_state = self.scrollbar_vertical_state.position(0);
+                self.scrollbar_state = self.scrollbar_state.position(0);
                 self.is_active = false;
                 Ok(Action::SwitchAppContext(self.caller_context).into())
             }
@@ -153,8 +145,6 @@ impl Component for HelpPage {
 
     fn render(&mut self, f: &mut ratatui::Frame<'_>, area: Rect) -> Result<()> {
         if self.should_render() {
-            self.set_colors();
-
             let header_style = Style::default()
                 .fg(self.colors.header_fg)
                 .bg(self.colors.header_bg);
@@ -178,12 +168,7 @@ impl Component for HelpPage {
                 .style(header_style)
                 .height(1);
 
-            let rows_counter: usize = self
-                .help_docs
-                .items
-                .iter()
-                .map(|item| item.len())
-                .sum::<usize>();
+            let rows_counter = self.help_docs.items.len() * 2;
 
             let rows = self.help_docs.items.iter().enumerate().map(|(i, data)| {
                 let color = match i % 2 {
@@ -207,15 +192,19 @@ impl Component for HelpPage {
             // clear/reset a certain area to allow overdrawing (e.g. for popups).
             f.render_widget(Clear, area);
 
-            if help_block_area.height < (rows_counter + 4) as u16 {
+            if area.height <= (rows_counter + 3) as u16 {
                 let help_page_table = Table::new(rows, table_widths)
                     .header(header)
-                    .block(help_block.title(BLOCK_TITLE_SCROLLABLE).padding(Padding {
-                        left: 0,
-                        right: 0,
-                        top: 1,
-                        bottom: 0,
-                    }))
+                    .block(
+                        help_block
+                            .title(HelpPage::block_title_scroll())
+                            .padding(Padding {
+                                left: 0,
+                                right: 0,
+                                top: 1,
+                                bottom: 0,
+                            }),
+                    )
                     .highlight_symbol(
                         Text::from(vec!["\n".into(), HIGHLIGHT_SYMBOL.into()])
                             .style(Style::new().fg(self.colors.selected_style_fg)),
@@ -239,21 +228,25 @@ impl Component for HelpPage {
                         vertical: 1,
                         horizontal: 0,
                     }),
-                    &mut self.scrollbar_vertical_state,
+                    &mut self.scrollbar_state,
                 );
             } else {
                 let help_page_table = Table::new(rows, table_widths)
                     .header(header)
-                    .block(help_block.title(BLOCK_TITLE).padding(Padding {
+                    .block(help_block.title(HelpPage::block_title()).padding(Padding {
                         left: 1,
                         right: 0,
                         top: 1,
                         bottom: 0,
                     }))
-                    .bg(self.colors.buffer_bg);
+                    .highlight_symbol(
+                        Text::from(vec!["\n".into(), "   ".into()])
+                            .style(Style::new().fg(self.colors.selected_style_fg)),
+                    )
+                    .bg(self.colors.buffer_bg)
+                    .highlight_spacing(HighlightSpacing::Always);
 
-                self.scrollbar_vertical_state =
-                    ScrollbarState::new(self.help_docs.items.len()).position(0);
+                self.scrollbar_state = ScrollbarState::new(self.help_docs.items.len()).position(0);
                 self.help_docs.state.select(Some(0));
 
                 f.render_stateful_widget(

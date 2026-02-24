@@ -5,6 +5,7 @@ use crate::app::AppContext;
 pub enum Keys {
     F1,
     F2,
+    F3,
     F5,
     F12,
     Enter,
@@ -27,6 +28,7 @@ impl std::fmt::Display for Keys {
         match self {
             Keys::F1 => write!(f, "F1"),
             Keys::F2 => write!(f, "F2"),
+            Keys::F3 => write!(f, "F3"),
             Keys::F5 => write!(f, "F5"),
             Keys::F12 => write!(f, "F12"),
             Keys::Enter => write!(f, "Enter"),
@@ -98,6 +100,7 @@ impl KeyStroke {
             (Keys::AnyChar, crossterm::event::KeyCode::Char(_)) => true,
             (Keys::F1, crossterm::event::KeyCode::F(1)) => true,
             (Keys::F2, crossterm::event::KeyCode::F(2)) => true,
+            (Keys::F3, crossterm::event::KeyCode::F(3)) => true,
             (Keys::F5, crossterm::event::KeyCode::F(5)) => true,
             (Keys::F12, crossterm::event::KeyCode::F(12)) => true,
             (Keys::Enter, crossterm::event::KeyCode::Enter)
@@ -146,7 +149,7 @@ pub struct KeyBinding {
     command_desc: Option<&'static [CommandDesc]>,
 }
 
-pub const DEFAULT_KEY_BINDING: [KeyBinding; 23] = [
+pub const DEFAULT_KEY_BINDING: [KeyBinding; 24] = [
     KeyBinding {
         key_stroke: KeyStroke::new(Keys::F1, crossterm::event::KeyModifiers::NONE),
         alt: None,
@@ -168,6 +171,20 @@ pub const DEFAULT_KEY_BINDING: [KeyBinding; 23] = [
         help_contexts: &[AppContext::All],
         command_desc: Some(&[CommandDesc {
             desc: "Show about page",
+            contexts: &[
+                AppContext::Explorer,
+                AppContext::Search,
+                AppContext::Results,
+            ],
+        }]),
+    },
+    KeyBinding {
+        key_stroke: KeyStroke::new(Keys::F3, crossterm::event::KeyModifiers::NONE),
+        alt: None,
+        help_desc: "Show the Settings-Page",
+        help_contexts: &[AppContext::All],
+        command_desc: Some(&[CommandDesc {
+            desc: "Show settings page",
             contexts: &[
                 AppContext::Explorer,
                 AppContext::Search,

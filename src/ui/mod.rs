@@ -2,13 +2,16 @@ use ratatui::{prelude::*, style::palette::tailwind};
 use serde::{Deserialize, Serialize};
 
 pub mod about_widget;
+pub mod dropdown;
 pub mod explorer_widget;
 pub mod footer_widget;
 pub mod help_widget;
 pub mod info_widget;
+pub mod input;
 pub mod metadata_widget;
 pub mod result_widget;
 pub mod search_widget;
+pub mod settings_widget;
 pub mod title_widget;
 
 pub const PALETTES: [tailwind::Palette; 4] = [
@@ -18,11 +21,12 @@ pub const PALETTES: [tailwind::Palette; 4] = [
     tailwind::RED,
 ];
 
+// Symbol used to highlight the currently selected item in the UI, e.g. in the file explorer or the settings menu.
 #[cfg(not(target_os = "windows"))]
-pub const HIGHLIGHT_SYMBOL: &str = " ➤  ";
+pub const HIGHLIGHT_SYMBOL: &str = " ⮕  ";
 
 #[cfg(target_os = "windows")]
-pub const HIGHLIGHT_SYMBOL: &str = " →  ";
+pub const HIGHLIGHT_SYMBOL: &str = " >> "; // Windows Terminal does not properly render the "⮕" symbol, so we use a simpler one instead.
 
 #[derive(Debug, Default, Clone)]
 pub struct ThemeColor {
@@ -85,7 +89,15 @@ pub fn get_main_layout(area: Rect) -> MainLayout {
     }
 }
 
-/// helper function to create a centered rect using up certain percentage of the available rect `r`
+/// Centers a [`Rect`] within the given area `r`.
+///
+/// Both width and height scale proportionally based on percentages,
+/// making the rect dynamically adapt to any terminal size.
+///
+/// # Parameters
+/// - `percent_x` – Horizontal size of the rect as a percentage of `r`
+/// - `percent_y` – Vertical size of the rect as a percentage of `r`
+/// - `r`         – The area to center within
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::vertical([
         Constraint::Percentage((100 - percent_y) / 2),
@@ -94,6 +106,34 @@ pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     ])
     .split(r);
 
+    Layout::horizontal([
+        Constraint::Percentage((100 - percent_x) / 2),
+        Constraint::Percentage(percent_x),
+        Constraint::Percentage((100 - percent_x) / 2),
+    ])
+    .split(popup_layout[1])[1]
+}
+
+/// Centers a [`Rect`] within the given area `r`.
+///
+/// The width scales horizontally based on `percent_x` (0–100),
+/// while the height remains fixed at `fixed_height` (in terminal rows).
+///
+/// # Parameters
+/// - `percent_x`    – Horizontal size of the rect as a percentage of `r`
+/// - `fixed_height` – Fixed vertical size in terminal rows
+/// - `r`            – The area to center within
+pub fn centered_rect_fixed_height(percent_x: u16, fixed_height: u16, r: Rect) -> Rect {
+    let vertical_padding = r.height.saturating_sub(fixed_height) / 2;
+
+    let popup_layout = Layout::vertical([
+        Constraint::Length(vertical_padding),
+        Constraint::Length(fixed_height),
+        Constraint::Length(vertical_padding),
+    ])
+    .split(r);
+
+    // Horizontal: prozentual wie bisher
     Layout::horizontal([
         Constraint::Percentage((100 - percent_x) / 2),
         Constraint::Percentage(percent_x),

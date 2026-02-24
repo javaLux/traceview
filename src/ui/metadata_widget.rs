@@ -4,33 +4,34 @@ use async_trait::async_trait;
 use ratatui::{prelude::*, style::palette::tailwind, widgets::*};
 
 use crate::{
-    app::{actions::Action, AppState},
+    app::{AppState, actions::Action},
     component::Component,
     models::{Scrollable, StatefulTable},
     tui::Event,
-    ui::{centered_rect, Theme, HIGHLIGHT_SYMBOL, PALETTES},
+    ui::{HIGHLIGHT_SYMBOL, PALETTES, Theme, centered_rect},
 };
-
-const BLOCK_TITLE_SCROLLABLE: &str = " Metadata | <Esc> close | (↑) move up | (↓) move down ";
-const BLOCK_TITLE: &str = " Metadata | <Esc> close ";
 
 #[derive(Debug)]
 struct TableColors {
     buffer_bg: Color,
+    header_bg: Color,
+    header_fg: Color,
     row_fg: Color,
+    selected_style_fg: Color,
     normal_row_color: Color,
     alt_row_color: Color,
-    selected_style_fg: Color,
 }
 
 impl TableColors {
     const fn new(color: &tailwind::Palette) -> Self {
         Self {
             buffer_bg: tailwind::SLATE.c950,
+            header_bg: color.c900,
+            header_fg: tailwind::SLATE.c200,
             row_fg: tailwind::SLATE.c200,
+            selected_style_fg: color.c400,
             normal_row_color: tailwind::SLATE.c950,
             alt_row_color: tailwind::SLATE.c800,
-            selected_style_fg: color.c400,
         }
     }
 }
@@ -47,7 +48,6 @@ pub struct MetadataPage {
     scrollbar_state: ScrollbarState,
     object_name: String,
     colors: TableColors,
-    color_index: usize,
     is_active: bool,
 }
 
@@ -58,6 +58,24 @@ impl MetadataPage {
             handler.send(action)?
         }
         Ok(())
+    }
+
+    fn block_title_scroll() -> ratatui::prelude::Line<'static> {
+        Line::from(vec![
+            Span::raw(" Metadata | "),
+            Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
+            Span::raw("Close "),
+            Span::styled(" <↑↓> ", Style::default().fg(Color::Yellow)),
+            Span::raw("Scroll "),
+        ])
+    }
+
+    fn block_title() -> ratatui::prelude::Line<'static> {
+        Line::from(vec![
+            Span::raw(" Metadata | "),
+            Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
+            Span::raw("Close "),
+        ])
     }
 }
 
@@ -72,7 +90,6 @@ impl Default for MetadataPage {
             metadata: StatefulTable::new(),
             scrollbar_state: ScrollbarState::default(),
             object_name: Default::default(),
-            color_index: Default::default(),
             colors: TableColors::new(&PALETTES[0]),
             is_active: Default::default(),
         }
@@ -209,7 +226,7 @@ impl Component for MetadataPage {
 
             if draw_area.height < rows_counter as u16 {
                 let metadata_page_table = Table::new(rows, table_widths)
-                    .block(block.title(Line::from(BLOCK_TITLE_SCROLLABLE).left_aligned()))
+                    .block(block.title(MetadataPage::block_title_scroll().left_aligned()))
                     .highlight_symbol(
                         Text::from(vec!["\n".into(), HIGHLIGHT_SYMBOL.into()])
                             .style(Style::new().fg(self.colors.selected_style_fg)),
@@ -231,7 +248,11 @@ impl Component for MetadataPage {
                 );
             } else {
                 let metadata_page_table = Table::new(rows, table_widths)
-                    .block(block.title(Line::from(BLOCK_TITLE).left_aligned()))
+                    .block(block.title(MetadataPage::block_title().left_aligned()))
+                    .highlight_symbol(
+                        Text::from(vec!["\n".into(), "    ".into()])
+                            .style(Style::new().fg(self.colors.selected_style_fg)),
+                    )
                     .bg(self.colors.buffer_bg);
 
                 self.scrollbar_state = ScrollbarState::new(self.metadata.items.len()).position(0);

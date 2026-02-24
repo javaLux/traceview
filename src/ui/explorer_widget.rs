@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
 use crate::{
-    app::{actions::Action, config::AppConfig, key_bindings, AppContext, AppState},
+    app::{AppContext, AppState, actions::Action, config::AppConfig, key_bindings},
     component::Component,
-    file_handling::{parent_dir_entry, Explorer, FilteredEntries},
+    file_handling::{Explorer, FilteredEntries, parent_dir_entry},
     models::Scrollable,
     tui::Event,
-    ui::{get_main_layout, Theme, HIGHLIGHT_SYMBOL},
+    ui::{HIGHLIGHT_SYMBOL, Theme, get_main_layout},
     utils,
 };
 use anyhow::Result;
@@ -413,6 +413,12 @@ impl Component for ExplorerWidget {
                 self.app_context = AppContext::NotActive;
                 Ok(Action::ShowAbout(AppContext::Explorer).into())
             }
+            crossterm::event::KeyCode::F(3)
+                if key.modifiers == crossterm::event::KeyModifiers::NONE =>
+            {
+                self.app_context = AppContext::NotActive;
+                Ok(Action::ShowSettings(AppContext::Explorer).into())
+            }
             crossterm::event::KeyCode::Char('o')
                 if key.modifiers == crossterm::event::KeyModifiers::CONTROL =>
             {
@@ -496,15 +502,6 @@ impl Component for ExplorerWidget {
 
             let [spacer_area, draw_area] =
                 Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(draw_area);
-
-            // self.send_app_action(Action::UpdateAppState(AppState::Working(
-            //     format!(
-            //         "Selected: {}, Match Result - Pos: {}, Entries: Count: {}",
-            //         self.explorer.selected(),
-            //         self.filtered_entries.user_hint_pos(),
-            //         self.filtered_entries.total_entries(),
-            //     ),
-            // )))?;
 
             let theme_colors = self.theme.theme_colors();
 

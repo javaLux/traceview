@@ -15,13 +15,13 @@ use console::style;
 
 use crate::{
     app::{
-        config::{AppConfig, CONFIG_NAME},
         App,
+        config::{AppConfig, CONFIG_NAME},
     },
     cli::Cli,
     panic_handling::initialize_panic_hook,
     tui::Tui,
-    utils::{config_dir, create_data_dir, initialize_logging},
+    utils::{app_name, config_dir, create_data_dir, initialize_logging},
 };
 
 #[tokio::main]
@@ -32,22 +32,23 @@ async fn main() -> Result<()> {
     initialize_panic_hook()?;
 
     // get the config file path
-    let config_file = args.config.unwrap_or(config_dir().join(CONFIG_NAME));
+    let config_path = args.config.unwrap_or(config_dir().join(CONFIG_NAME));
 
-    // load a given configuration or store a new one
-    let config = AppConfig::load_config(config_file);
+    // load configuration or store a new one
+    let config = AppConfig::load_config(&config_path);
 
-    let mut app = App::new(args.refresh_rate, args.frame_rate, config);
+    let mut app = App::new(config, config_path);
     if let Err(err) = app.run().await {
         // Reset the terminal before printing the error
         let mut tui = Tui::new()?;
         tui.exit()?;
         log::error!("{err}");
         println!(
-            "{} - Something went wrong while running the app",
-            style("[ERROR]").bold().red()
+            "{} - Something went wrong while running {}",
+            style("[ERROR]").bold().red(),
+            app_name(),
         );
-        eprintln!("\t=> {err}");
+        println!("\t=> {err}");
         std::process::exit(1);
     }
 

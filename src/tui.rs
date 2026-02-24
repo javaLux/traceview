@@ -74,26 +74,22 @@ impl Tui {
         })
     }
 
-    /// Set a new Tick-Rate fpr the Event-Handler
-    pub fn tick_rate(mut self, tick_rate: f64) -> Self {
+    /// Set a new Tick-Rate for the Event-Handler
+    pub fn tick_rate(&mut self, tick_rate: f64) {
         self.tick_rate = tick_rate;
-        self
     }
 
-    /// Set a new Frame-Rate fpr the Event-Handler
-    pub fn frame_rate(mut self, frame_rate: f64) -> Self {
+    /// Set a new Frame-Rate for the Event-Handler
+    pub fn frame_rate(&mut self, frame_rate: f64) {
         self.frame_rate = frame_rate;
-        self
     }
 
-    pub fn _mouse(mut self, mouse: bool) -> Self {
+    pub fn _mouse(&mut self, mouse: bool) {
         self.mouse = mouse;
-        self
     }
 
-    pub fn _paste(mut self, paste: bool) -> Self {
+    pub fn _paste(&mut self, paste: bool) {
         self.paste = paste;
-        self
     }
 
     /// Start the Terminal-User-Interface event loop, to process user events such as

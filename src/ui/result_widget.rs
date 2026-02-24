@@ -8,13 +8,13 @@ use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    app::{actions::Action, config::AppConfig, key_bindings, AppContext, AppState},
+    app::{AppContext, AppState, actions::Action, config::AppConfig, key_bindings},
     component::Component,
     file_handling::SearchResult,
     models::Scrollable,
     tui::Event,
     ui::{
-        get_main_layout, highlight_text_part, search_widget::SearchMode, Theme, HIGHLIGHT_SYMBOL,
+        HIGHLIGHT_SYMBOL, Theme, get_main_layout, highlight_text_part, search_widget::SearchMode,
     },
     utils,
 };
@@ -51,7 +51,8 @@ impl ExportTask {
         let cancellation_token = self.cancellation_token.clone();
 
         let export_path = export_dir.join(format!(
-            "search_results_{}.json",
+            "{}-search-results_{}.json",
+            utils::app_name(),
             chrono::Local::now().format("%Y-%m-%dT%H_%M_%S")
         ));
 
@@ -449,6 +450,12 @@ impl Component for ResultWidget {
                 self.app_context = AppContext::NotActive;
                 return Ok(Action::ShowAbout(AppContext::Results).into());
             }
+            crossterm::event::KeyCode::F(3)
+                if key.modifiers == crossterm::event::KeyModifiers::NONE =>
+            {
+                self.app_context = AppContext::NotActive;
+                return Ok(Action::ShowSettings(AppContext::Results).into());
+            }
             // Export search results as JSON
             crossterm::event::KeyCode::F(12)
                 if key.modifiers == crossterm::event::KeyModifiers::NONE =>
@@ -560,6 +567,10 @@ impl Component for ResultWidget {
             Action::HideOrShowSystemOverview => {
                 self.use_whole_draw_area = !self.use_whole_draw_area;
             }
+            Action::ApplyAppSettings(c) => {
+                self.export_dir = c.export_dir();
+                self.follow_sym_links = c.follow_sym_links();
+            }
             Action::Quit => self.export_task.stop(),
             _ => {}
         }
@@ -600,7 +611,9 @@ impl Component for ResultWidget {
 
             let help_msg = vec![
                 " <Esc>".fg(theme_colors.main_text_fg),
-                " back to search ".fg(theme_colors.main_fg),
+                " Back to search ".fg(theme_colors.main_fg),
+                " <F12>".fg(theme_colors.main_text_fg),
+                " Export Results (JSON) ".fg(theme_colors.main_fg),
             ];
 
             let header_style = Style::default()

@@ -4,12 +4,22 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use human_bytes::human_bytes;
 use std::{
     fs::{self, File, OpenOptions},
+    io::Write,
     path::{Path, PathBuf},
 };
 
 use path_absolutize::Absolutize;
 
 use crate::app::{self, APP_NAME};
+
+pub fn app_name() -> String {
+    let app_name = env!("CARGO_PKG_NAME").trim().to_string();
+    if app_name.is_empty() {
+        return "Unknown".to_string();
+    }
+
+    app_name
+}
 
 /// Formats a given path for user-friendly display.
 ///
@@ -38,6 +48,31 @@ pub fn format_path_for_display<P: AsRef<Path>>(p: P) -> String {
             abs_path.replace(&absolute_path_as_string(home_dir), "~")
         },
     )
+}
+
+/// Resolves a path to an absolute path, expanding a leading `~` to the
+/// current user's home directory if present.
+///
+/// # Example
+/// ```rust
+/// let path = expand_and_resolve_path("~/documents/file.txt");
+/// // e.g. "/home/user/documents/file.txt"
+/// ```
+pub fn expand_and_resolve_path<P: AsRef<Path>>(p: P) -> String {
+    let p = p.as_ref();
+    let p_str = p.to_string_lossy();
+
+    if p_str.starts_with('~') {
+        user_home_dir().map_or_else(
+            || absolute_path_as_string(p),
+            |home_dir| {
+                let expanded = p_str.replacen('~', &absolute_path_as_string(home_dir), 1);
+                absolute_path_as_string(PathBuf::from(expanded))
+            },
+        )
+    } else {
+        absolute_path_as_string(p)
+    }
 }
 
 pub fn config_dir() -> PathBuf {
@@ -80,27 +115,39 @@ pub fn user_home_dir() -> Option<PathBuf> {
 
 /// Initialize the application logging
 pub fn initialize_logging() -> Result<()> {
-    init_logger()?;
-    log::info!("[{APP_NAME}] => Start application",);
-    log::info!("[{APP_NAME}] => Version   : {}", env!("CARGO_PKG_VERSION"));
-    log::info!("[{APP_NAME}] => Running on: {}", os_info::get());
+    init_log_writer()?;
+    log::info!("{} version: {}", APP_NAME, env!("CARGO_PKG_VERSION"));
+    log::info!("Running on => {}", os_info::get());
     Ok(())
 }
 
 /// Initializes the log writer for debugging purposes.
 ///
-/// This function creates a debug log file with a name containing the project name and
-/// a timestamp formatted in the "YYYY-MM-DD_HH_MM_SS" format. The log file is stored
-/// in the project's data directory. The logging level is set to debug,
+/// This function creates a log file with a name containing the project name.
+/// The log file is stored in the project's data directory. The logging level is set to debug,
 /// and the logs which was created by the `log` crate are
-/// written to the debug log file using the `simplelog` crate.
-fn init_logger() -> Result<()> {
-    let log_file =
+/// written to the log file using the `simplelog` crate.
+fn init_log_writer() -> Result<()> {
+    let mut log_file =
         initialize_log_file().with_context(|| "Failed to create application log file")?;
+
+    match log_file.metadata() {
+        Ok(metadata) => {
+            if metadata.len() > 1 {
+                let _ = log_file.write(format!("\n{}\n", "-".repeat(100)).as_bytes());
+            }
+        }
+        Err(_) => {
+            let _ = log_file.write(format!("\n{}\n", "-".repeat(100)).as_bytes());
+        }
+    }
+
     let config = simplelog::ConfigBuilder::new()
         .set_time_format_rfc3339()
         .build();
+
     simplelog::WriteLogger::init(simplelog::LevelFilter::Debug, config, log_file)?;
+
     Ok(())
 }
 
@@ -186,28 +233,6 @@ pub fn absolute_path_as_string<P: AsRef<Path>>(path: P) -> String {
 /// ```
 pub fn convert_bytes_to_human_readable(bytes: u64) -> String {
     human_bytes(bytes as f64).to_string()
-}
-
-/// Extends the default ``clap --version`` with a custom application version message
-pub fn version() -> String {
-    let authors = env!("CARGO_PKG_AUTHORS").replace(":", ", ");
-    let version = env!("CARGO_PKG_VERSION");
-    let repo = env!("CARGO_PKG_REPOSITORY");
-
-    let config_dir = format_path_for_display(absolute_path_as_string(config_dir()));
-    let data_dir = format_path_for_display(absolute_path_as_string(data_dir()));
-
-    format!(
-        "\
-    --- developed with ♥ in Rust
-    Authors          : {authors}
-    Version          : {version}
-    Repository       : {repo}
-
-    Config directory : {config_dir}
-    Data directory   : {data_dir}
-    "
-    )
 }
 
 /// This function checks if the length of the input string exceeds the specified maximum length.

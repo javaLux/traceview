@@ -7,7 +7,7 @@ use tokio_util::sync::CancellationToken;
 use walkdir::WalkDir;
 
 use crate::{
-    app::{actions::Action, AppState},
+    app::{AppState, actions::Action},
     file_handling::metadata::{DirMetadata, FileMetadata},
     models::Scrollable,
     utils,

@@ -6,10 +6,10 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 use crate::{
-    app::{actions::Action, config::AppConfig, key_bindings, AppContext, AppState},
+    app::{AppContext, AppState, actions::Action, config::AppConfig, key_bindings},
     component::Component,
     tui::Event,
-    ui::{get_main_layout, Theme},
+    ui::{Theme, centered_rect_fixed_height, get_main_layout, input::SearchInput},
     utils,
 };
 
@@ -51,25 +51,18 @@ pub struct SearchWidget {
     /// Flag to control the available draw area for the [`SearchWidget`]
     /// If the [`crate::ui::info_widget::SystemOverview`] is not visible, than use the whole draw area
     use_whole_draw_area: bool,
-    /// Position of cursor in the editor area.
-    character_index: usize,
     /// Current working directory, in which to search for
     cwd: PathBuf,
-    /// Current value of the search_query input box
-    search_query: String,
-    // The shorted CWD -> used as Block title
+    // The shortened CWD -> used as Block title
     cwd_display_name: String,
     /// Flag to control the receiving of the key events for the search widget
     /// If the widget is working, then incoming key events are ignored
     is_working: bool,
     theme: Theme,
     mode: SearchMode,
-    /// To control how many characters the input field can hold
-    input_field_width: u16,
-    /// History of the input
-    history: Vec<String>,
-    history_index: Option<usize>,
     follow_sym_links: bool,
+    /// Handles all text input logic
+    search_input: SearchInput,
 }
 
 impl Default for SearchWidget {
@@ -80,114 +73,25 @@ impl Default for SearchWidget {
             action_sender: Default::default(),
             explorer_action_sender: Default::default(),
             use_whole_draw_area: Default::default(),
-            character_index: Default::default(),
             cwd: Default::default(),
-            search_query: Default::default(),
             cwd_display_name: Default::default(),
             is_working: Default::default(),
             theme: Default::default(),
             mode: Default::default(),
-            input_field_width: Default::default(),
-            history: Default::default(),
-            history_index: Default::default(),
             follow_sym_links: Default::default(),
+            search_input: SearchInput::default(),
         }
     }
 }
 
 impl SearchWidget {
-    fn move_cursor_left(&mut self) {
-        let cursor_moved_left = self.character_index.saturating_sub(1);
-        self.character_index = self.clamp_cursor(cursor_moved_left);
-    }
-
-    fn move_cursor_right(&mut self) {
-        let cursor_moved_right = self.character_index.saturating_add(1);
-        self.character_index = self.clamp_cursor(cursor_moved_right);
-    }
-
-    fn enter_char(&mut self, new_char: char) {
-        // add a new char to the input only if it is no whitespace and fits into the input field
-        if self.character_index <= (self.input_field_width - 3) as usize
-            && !new_char.is_whitespace()
-        {
-            let index = self.byte_index();
-            self.search_query.insert(index, new_char);
-            self.move_cursor_right();
-        }
-    }
-
-    /// Returns the byte index based on the character position.
-    ///
-    /// Since each character in a string can be contain multiple bytes, it's necessary to calculate
-    /// the byte index based on the index of the character.
-    fn byte_index(&self) -> usize {
-        self.search_query
-            .char_indices()
-            .map(|(i, _)| i)
-            .nth(self.character_index)
-            .unwrap_or(self.search_query.len())
-    }
-
-    fn delete_char(&mut self, key_code: crossterm::event::KeyCode) {
-        match key_code {
-            crossterm::event::KeyCode::Delete => {
-                // DELETE key functionality: Remove the nearest right character
-                let is_not_cursor_rightmost = self.character_index < self.search_query.len();
-                if is_not_cursor_rightmost {
-                    let current_index = self.character_index;
-
-                    // Getting all characters before the character to delete.
-                    let before_char_to_delete = self.search_query.chars().take(current_index);
-                    // Getting all characters after the character to delete.
-                    let after_char_to_delete = self.search_query.chars().skip(current_index + 1);
-
-                    // Reconstruct the string without the deleted character.
-                    self.search_query = before_char_to_delete.chain(after_char_to_delete).collect();
-                }
-            }
-            crossterm::event::KeyCode::Backspace => {
-                // BACKSPACE key functionality: Remove the nearest left character
-                let is_not_cursor_leftmost = self.character_index != 0;
-                if is_not_cursor_leftmost {
-                    let current_index = self.character_index;
-                    let from_left_to_current_index = current_index - 1;
-
-                    let before_char_to_delete =
-                        self.search_query.chars().take(from_left_to_current_index);
-                    let after_char_to_delete = self.search_query.chars().skip(current_index);
-
-                    self.search_query = before_char_to_delete.chain(after_char_to_delete).collect();
-                    self.move_cursor_left();
-                }
-            }
-            _ => {}
-        }
-    }
-
-    fn clamp_cursor(&self, new_cursor_pos: usize) -> usize {
-        new_cursor_pos.clamp(0, self.search_query.chars().count())
-    }
-
-    fn reset_cursor(&mut self) {
-        self.character_index = 0;
-    }
-
-    fn reset(&mut self) {
-        self.reset_cursor();
-        self.history_index = None;
-        self.search_query.clear();
-    }
-
     async fn submit_search(&mut self) -> Result<()> {
-        // only if the search query does not yet exist, add it to the history
-        if !self.history.contains(&self.search_query) {
-            self.history.push(self.search_query.clone());
-        }
-        self.history_index = None;
+        // Saves the current query into the history (if not already present)
+        self.search_input.submit();
+
         self.send_explorer_action(Action::StartSearch(
             self.cwd.clone(),
-            self.search_query.clone(),
+            self.search_input.text_input.value().to_string(),
             self.mode.depth(),
             self.follow_sym_links,
         ))
@@ -273,7 +177,7 @@ impl Component for SearchWidget {
         match key.code {
             // Submit search
             crossterm::event::KeyCode::Enter => {
-                if !self.search_query.trim().is_empty() {
+                if !self.search_input.text_input.is_empty() {
                     self.submit_search().await?;
                 } else {
                     return Ok(Action::UpdateAppState(AppState::Failure(
@@ -282,131 +186,46 @@ impl Component for SearchWidget {
                     .into());
                 }
             }
-            crossterm::event::KeyCode::Char('o')
-                if key.modifiers == crossterm::event::KeyModifiers::CONTROL =>
-            {
+            crossterm::event::KeyCode::Char('o') if key.modifiers == KeyModifiers::CONTROL => {
                 return Ok(Action::HideOrShowSystemOverview.into());
             }
-            crossterm::event::KeyCode::Char('t')
-                if key.modifiers == crossterm::event::KeyModifiers::CONTROL =>
-            {
+            crossterm::event::KeyCode::Char('t') if key.modifiers == KeyModifiers::CONTROL => {
                 self.theme = self.theme.toggle_theme();
                 return Ok(Action::ToggleTheme(self.theme).into());
             }
-            crossterm::event::KeyCode::Char(to_insert) => {
-                match key.modifiers {
-                    // Handle `Ctrl + v` for clipboard paste
-                    KeyModifiers::CONTROL if to_insert.eq_ignore_ascii_case(&'v') => {
-                        match utils::paste_from_clipboard() {
-                            Ok(content) => {
-                                if content.trim().is_empty() {
-                                    return Ok(Some(Action::UpdateAppState(AppState::Failure(
-                                        "Nothing to paste from clipboard".to_string(),
-                                    ))));
-                                }
-                                content.chars().for_each(|c| self.enter_char(c));
-                                return Ok(Some(Action::UpdateAppState(AppState::Done(
-                                    "Done".to_string(),
-                                ))));
-                            }
-                            Err(err) => {
-                                log::error!("{:?}", err);
-                                return Ok(Some(Action::UpdateAppState(AppState::Failure(
-                                    "Failed to paste content from clipboard".to_string(),
-                                ))));
-                            }
-                        }
-                    }
-
-                    // Allow all printable characters with these modifiers: NONE, SHIFT, ALT, CTRL + ALT
-                    modifiers
-                        if modifiers.contains(KeyModifiers::SHIFT)
-                            || modifiers.contains(KeyModifiers::ALT)
-                            || modifiers.contains(KeyModifiers::CONTROL | KeyModifiers::ALT)
-                            || modifiers.is_empty() =>
-                    {
-                        if !to_insert.is_whitespace() {
-                            self.enter_char(to_insert);
-                        }
-                    }
-
-                    // Ignore other modifiers
-                    _ => {}
-                }
+            crossterm::event::KeyCode::Tab if key.modifiers == KeyModifiers::NONE => {
+                self.switch_search_mode();
             }
-            //Moves backward through input history, if any
-            crossterm::event::KeyCode::Up => {
-                if !self.history.is_empty() {
-                    self.search_query.clear();
-                    self.reset_cursor();
-                    match self.history_index {
-                        Some(index) => {
-                            if index > 0 {
-                                self.history_index = Some(index - 1);
-                            } else {
-                                // Cycle to the most recent entry
-                                self.history_index = Some(self.history.len() - 1);
-                            }
-                        }
-                        None => {
-                            // Start cycling from the latest entry
-                            self.history_index = Some(self.history.len() - 1);
-                        }
-                    }
-                    let previous_input = self.history[self.history_index.unwrap()].clone();
-                    previous_input.chars().for_each(|c| self.enter_char(c));
-                }
-            }
-            // Moves forward through input history, if any
-            crossterm::event::KeyCode::Down => {
-                if !self.history.is_empty() {
-                    self.search_query.clear();
-                    self.reset_cursor();
-                    match self.history_index {
-                        Some(index) => {
-                            if index < self.history.len() - 1 {
-                                self.history_index = Some(index + 1);
-                            } else {
-                                // Cycle back to the oldest entry
-                                self.history_index = Some(0);
-                            }
-                        }
-                        None => {
-                            // Start cycling from the oldest entry
-                            self.history_index = Some(0);
-                        }
-                    }
-                    let previous_input = self.history[self.history_index.unwrap()].clone();
-                    previous_input.chars().for_each(|c| self.enter_char(c));
-                }
-            }
-            crossterm::event::KeyCode::Delete => self.delete_char(key.code),
-            crossterm::event::KeyCode::Backspace => self.delete_char(key.code),
-            crossterm::event::KeyCode::Left => self.move_cursor_left(),
-            crossterm::event::KeyCode::Right => self.move_cursor_right(),
-            crossterm::event::KeyCode::Tab
-                if key.modifiers == crossterm::event::KeyModifiers::NONE =>
-            {
-                self.switch_search_mode()
-            }
-            crossterm::event::KeyCode::F(1)
-                if key.modifiers == crossterm::event::KeyModifiers::NONE =>
-            {
+            crossterm::event::KeyCode::F(1) if key.modifiers == KeyModifiers::NONE => {
                 self.app_context = AppContext::NotActive;
                 return Ok(Action::ShowHelp(AppContext::Search).into());
             }
-            crossterm::event::KeyCode::F(2)
-                if key.modifiers == crossterm::event::KeyModifiers::NONE =>
-            {
+            crossterm::event::KeyCode::F(2) if key.modifiers == KeyModifiers::NONE => {
                 self.app_context = AppContext::NotActive;
                 return Ok(Action::ShowAbout(AppContext::Search).into());
             }
+            crossterm::event::KeyCode::F(3) if key.modifiers == KeyModifiers::NONE => {
+                self.app_context = AppContext::NotActive;
+                return Ok(Action::ShowSettings(AppContext::Search).into());
+            }
             crossterm::event::KeyCode::Esc => {
-                self.reset();
                 self.app_context = AppContext::NotActive;
                 return Ok(Action::SwitchAppContext(self.previous_context).into());
             }
-            _ => {}
+            // ----------------------------------------------------------------
+            // Everything else is delegated to the InputWidget
+            // ----------------------------------------------------------------
+            _ => {
+                // The InputWidget handles:
+                // - Char input (with modifier awareness)
+                // - Backspace / Delete
+                // - Left / Right cursor movement
+                // - Up / Down history navigation
+                // - Ctrl+V clipboard paste
+                if let Err(err) = self.search_input.handle_key_events(key).await {
+                    return Ok(Action::UpdateAppState(AppState::Failure(err.to_string())).into());
+                }
+            }
         }
 
         Ok(None)
@@ -432,9 +251,7 @@ impl Component for SearchWidget {
             Action::SearchDone(search_result) => {
                 self.is_working = false;
                 if let Some(result) = search_result {
-                    self.reset();
                     self.send_app_action(Action::ShowResultsPage(result.clone(), self.mode))?;
-
                     return Ok(Action::SwitchAppContext(AppContext::Results).into());
                 } else {
                     return Ok(Action::UpdateAppState(AppState::Failure(
@@ -448,6 +265,9 @@ impl Component for SearchWidget {
             }
             Action::HideOrShowSystemOverview => {
                 self.use_whole_draw_area = !self.use_whole_draw_area;
+            }
+            Action::ApplyAppSettings(c) => {
+                self.follow_sym_links = c.follow_sym_links();
             }
             _ => {}
         }
@@ -464,7 +284,6 @@ impl Component for SearchWidget {
                 get_main_layout(area).main_area
             };
 
-            // the main draw area, include the spacer and the first block (CWD)
             let [top_spacer_area, draw_area] =
                 Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(draw_area);
 
@@ -473,19 +292,21 @@ impl Component for SearchWidget {
             let main_block_title = format!(" Cwd: [{}] ", self.cwd_display_name);
             let inner_block_title = match self.mode {
                 SearchMode::Flat => " Search for file/directory names in the current directory ",
-                SearchMode::Deep => " Search for file/directory names in the current directory and all subdirectories ",
+                SearchMode::Deep => {
+                    " Search for file/directory names in the current directory and all subdirectories "
+                }
             };
             let input_block_title = format!(" Type search query [Mode: {}] ", self.mode);
 
             let help_msg = vec![
                 " <Esc>".fg(theme_colors.main_text_fg),
-                " back to Explorer ".fg(theme_colors.main_fg),
+                " Back to Explorer ".fg(theme_colors.main_fg),
                 "|".fg(theme_colors.main_fg),
                 " <Enter>".fg(theme_colors.main_text_fg),
-                " submit search ".fg(theme_colors.main_fg),
+                " Submit search ".fg(theme_colors.main_fg),
                 "|".fg(theme_colors.main_fg),
                 " <Tab>".fg(theme_colors.main_text_fg),
-                " switch search mode ".fg(theme_colors.main_fg),
+                " Switch search mode ".fg(theme_colors.main_fg),
             ];
 
             // CWD block
@@ -508,7 +329,6 @@ impl Component for SearchWidget {
                 .title_alignment(Alignment::Center)
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                // .border_style(Style::new().fg(theme_colors.main_fg))
                 .border_style(Style::new().fg(match self.mode {
                     SearchMode::Flat => theme_colors.main_fg,
                     SearchMode::Deep => theme_colors.alt_fg,
@@ -528,52 +348,35 @@ impl Component for SearchWidget {
                 .horizontal_margin(10)
                 .areas(second_block_area);
 
+            let border_fg = match self.mode {
+                SearchMode::Flat => theme_colors.main_fg,
+                SearchMode::Deep => theme_colors.alt_fg,
+            };
+
             let input_block = Block::default()
                 .title_top(Line::from(input_block_title))
                 .title_alignment(Alignment::Left)
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::new().fg(match self.mode {
-                    SearchMode::Flat => theme_colors.main_fg,
-                    SearchMode::Deep => theme_colors.alt_fg,
-                }))
+                .border_style(Style::new().fg(border_fg))
                 .style(Style::new().bg(theme_colors.alt_bg));
 
             let [spacer_line_area, input_block_area] =
                 Layout::vertical([Constraint::Length(1), Constraint::Length(1)])
                     .areas(input_block.inner(third_block_area));
 
-            self.input_field_width = input_block_area.width;
-
             f.render_widget(input_block, third_block_area);
-
-            let input = Paragraph::new(self.search_query.as_str())
-                .style(
-                    Style::new()
-                        .bg(theme_colors.alt_bg)
-                        .fg(theme_colors.main_text_fg),
-                )
-                .block(Block::default().padding(Padding {
-                    left: 1,
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                }));
-
             f.render_widget(Line::from(" ").bg(theme_colors.alt_bg), spacer_line_area);
-            f.render_widget(input, input_block_area);
 
-            // IMPORTANT:
-            // Only display the cursor if no search is running to prevent the cursor from flickering
-            if !self.is_working {
-                f.set_cursor_position(Position::new(
-                    // Draw the cursor at the current position in the input field.
-                    // This position can be controlled using the left and right arrow keys
-                    input_block_area.x + self.character_index as u16 + 1,
-                    // Move one line down, from the border to the input line if needed
-                    input_block_area.y,
-                ))
-            }
+            let input_centered_area = centered_rect_fixed_height(100, 4, input_block_area);
+            // Render input
+            self.search_input.render(
+                f,
+                input_centered_area,
+                theme_colors.alt_bg,
+                theme_colors.main_text_fg,
+                !self.is_working, // show_cursor only when no search is running
+            );
         }
 
         Ok(())

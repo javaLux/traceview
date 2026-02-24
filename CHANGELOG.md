@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [2.0.0] - 2026-02-24
+- Update dependencies
+- Migration to the new Rust Edition 2024
+- Small UI improvements
+- Improved Logging behavior
+- Refactoring
+
+### Added
+- You can now edit the app settings, e.g. _**Start-Directory**_ for the Explorer or the _**Default-Theme**_, directly in the app by using
+  the Settings-Page ``[F3 Key]``
+
+### Removed
+- **Breaking Change:**
+  - The app configuration via CLI-Options was removed, these are now available in the Built-In Settings-Page
+  - Following CLI-Options are removed:
+    - ``[-r, --refresh-rate]`` -> to control the System-Resource update rate per second
+    - ``[-f, --frame-rate]``   -> to control the Frames per Second (TUI render)
+<br>
+
+
 ## [1.0.3] - 2025-04-11
 - update dependencies
 - small UI improvements

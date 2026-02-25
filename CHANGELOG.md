@@ -7,6 +7,9 @@ All notable changes to this project will be documented in this file. The format 
 ## [2.1.0] - 2026-02-25
 - Update dependencies
 - Small UI improvements
+- Improved Drop-Down list handling
+  - use `Space` to toggle
+  - use `Enter` to apply
 
 ### Added
 - The Directory-Path input widget (Settings-Page) now has a tidy auto-completion feature -> Use it by pressing the `Tab` key

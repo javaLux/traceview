@@ -14,6 +14,7 @@ use crate::{
 /// Enum that tracks all the actions that can be carried out by the App
 pub enum Action {
     ApplyAppSettings(AppConfig),
+    ApplyDropDownSelection,
     ApplySettingsInput,
     CloseMetadata,
     DropDownClosed,

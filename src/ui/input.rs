@@ -31,7 +31,7 @@ impl TextInput {
     }
 
     /// Clears the current input and resets the cursor
-    pub fn _clear(&mut self) {
+    pub fn clear(&mut self) {
         self.value.clear();
         self.reset_cursor();
     }
@@ -309,6 +309,13 @@ impl SettingsInput {
         self.text_input.value()
     }
 
+    fn handle_auto_completion(&mut self) {
+        if let Some(path) = utils::autocomplete_path(self.text_input.value()) {
+            self.text_input.clear();
+            self.text_input.enter_string(&path);
+        }
+    }
+
     pub async fn handle_key_events(
         &mut self,
         key: crossterm::event::KeyEvent,
@@ -355,6 +362,7 @@ impl SettingsInput {
                     return Ok(Some(Action::ApplySettingsInput));
                 }
             }
+            crossterm::event::KeyCode::Tab => self.handle_auto_completion(),
             crossterm::event::KeyCode::Esc => return Ok(Some(Action::SettingsInputCanceled)),
             crossterm::event::KeyCode::Backspace => self.text_input.delete_char(key.code),
             crossterm::event::KeyCode::Delete => self.text_input.delete_char(key.code),

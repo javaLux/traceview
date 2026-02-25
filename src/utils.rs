@@ -7,10 +7,56 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
 };
+use walkdir::WalkDir;
 
 use path_absolutize::Absolutize;
 
-use crate::app::{self, APP_NAME};
+use crate::{
+    app::{self, APP_NAME},
+    file_handling::SEPARATOR,
+};
+
+/// Returns the next valid directory path based on the given input path.
+///
+/// # Arguments
+/// * `input` - A string slice that holds the current input path
+///
+/// # Returns
+/// * `Option<String>` - The next valid directory path or None if no match was found
+pub fn autocomplete_path(path: &str) -> Option<String> {
+    // Expand the input path to an absolute path and resolve any ~
+    let expanded_path = expand_and_resolve_path(path);
+    let (parent_dir, partial_name) = if expanded_path.ends_with(SEPARATOR) {
+        (expanded_path, String::new())
+    } else {
+        let path = Path::new(&expanded_path);
+        let parent = path
+            .parent()
+            .map(|p| {
+                let s = p.to_string_lossy().to_string();
+                if s.is_empty() { ".".to_string() } else { s }
+            })
+            .unwrap_or_else(|| ".".to_string());
+        let file_name = path
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        (parent, file_name)
+    };
+
+    WalkDir::new(&parent_dir)
+        .min_depth(1)
+        .max_depth(1)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_dir())
+        .filter(|e| e.file_name().to_string_lossy().starts_with(&partial_name))
+        .map(|e| {
+            let path = e.path().to_string_lossy().to_string();
+            format!("{}{}", path, SEPARATOR)
+        })
+        .next()
+}
 
 pub fn app_name() -> String {
     let app_name = env!("CARGO_PKG_NAME").trim().to_string();

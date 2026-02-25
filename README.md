@@ -241,7 +241,7 @@ TraceView has been tested on the following operating systems and environments:
 | Windows          | 10/11           | Windows Terminal, PowerShell                    | x86_64   |
 | Ubuntu Linux     | 25.04           | GNOME-Terminal / bash, zsh                      | x86_64   |
 | Linux Mint       | 22.3            | GNOME-Terminal / bash, zsh                      | x86_64   |
-| EndeavourOS      | Ganymede Neo    | KDE-Terminal                                    | x86_64   |
+| EndeavourOS      | Ganymede Neo    | KDE-Terminal / bash, zsh                        | x86_64   |
 | macOS            | Monterey (12.x) | iTerm2 / zsh                                    | x86_64   |
 
 ### Notice
@@ -252,6 +252,13 @@ When testing under MacOs, I noticed that the standard terminal does not fully su
 <br>
 
 ## Troubleshooting
+
+### Pasting content from the clipboard does not work
+If `Ctrl+V` does not work to paste content from the clipboard, please try `Ctrl+Shift+V` as an alternative.
+
+> **Note:**<br>
+Pasting content from the clipboard via `Ctrl+V` may not work in all terminal environments. Depending on your terminal emulator, you might need to use `Ctrl+Shift+V` instead (e.g., GNOME, KDE, or other Linux-based terminal emulators).
+
 ### Windows Terminal Freeze Issue
 If you experience the app freezing when clicking inside the terminal window with the **left mouse button** on Windows, this is due to the terminal's default behavior of entering "selection mode." In this mode, terminal input is paused while text is being selected. To avoid this issue:
 - Use keyboard navigation instead of mouse clicks.

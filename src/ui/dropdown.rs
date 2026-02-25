@@ -99,22 +99,25 @@ where
             KeyCode::Up => {
                 self.previous();
             }
+            // Enter confirms the selection if expanded, otherwise it applies the current selection and closes the dropdown
             KeyCode::Enter => {
                 if !self.expanded {
-                    self.toggle();
+                    return Ok(Some(Action::ApplyDropDownSelection));
                 } else {
                     self.confirm();
                 }
             }
-            KeyCode::Esc => {
+            // Space toggles the dropdown
+            KeyCode::Char(' ') => {
                 if !self.expanded {
-                    self.close();
-                    // Return an action to close the dropdown in the parent component
-                    return Ok(Some(Action::DropDownClosed));
+                    self.toggle();
                 } else {
-                    // just close the dropdown without applying changes
                     self.close();
                 }
+            }
+            // Esc closes the dropdown without applying changes
+            KeyCode::Esc => {
+                return Ok(Some(Action::DropDownClosed));
             }
             _ => {}
         }
@@ -163,7 +166,7 @@ where
 
     pub fn render(&mut self, f: &mut Frame, area: Rect, title: &str) {
         let draw_area = centered_rect(50, 40, area);
-        let collapsed_height: u16 = 4;
+        let collapsed_height: u16 = 5;
 
         let collapsed_area = Rect {
             x: draw_area.x,
@@ -208,6 +211,7 @@ where
             List::new(vec![
                 ListItem::new(Line::raw(" ")), // ← Empty Line for Padding
                 ListItem::new(selected_text),  // ← Selected Item
+                ListItem::new(Line::raw(" ")), // ← Empty Line for Padding,
             ]),
             inner,
         );
@@ -296,19 +300,21 @@ where
         // Help-Text based on state (expanded/collapsed)
         if self.expanded {
             Line::from(vec![
-                Span::styled(" <↑↓> ", Style::default().fg(Color::Yellow)),
-                Span::raw("Select  "),
+                Span::styled("<Space> ", Style::default().fg(Color::Yellow)),
+                Span::raw("Toggle "),
                 Span::styled("<Enter> ", Style::default().fg(Color::Yellow)),
-                Span::raw("Confirm  "),
+                Span::raw("Confirm "),
                 Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
                 Span::raw("Cancel "),
             ])
         } else {
             Line::from(vec![
-                Span::styled(" <Enter> ", Style::default().fg(Color::Yellow)),
-                Span::raw("Toggle  "),
-                Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
+                Span::styled(" <Space> ", Style::default().fg(Color::Yellow)),
+                Span::raw("Toggle "),
+                Span::styled("<Enter> ", Style::default().fg(Color::Yellow)),
                 Span::raw("Apply "),
+                Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
+                Span::raw("Cancel "),
             ])
         }
     }

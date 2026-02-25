@@ -4,7 +4,13 @@ use anyhow::Result;
 use crossterm::event::KeyModifiers;
 use ratatui::{prelude::*, widgets::*};
 
-use crate::{app::actions::Action, ui::centered_rect_fixed_height, utils};
+use crate::{
+    app::{AppState, actions::Action},
+    ui::centered_rect_fixed_height,
+    utils,
+};
+
+const CLIPBOARD_EMPTY_MSG: &str = "Clipboard is empty, nothing to paste";
 
 /// A reusable, standalone struct that handles text input logic.
 /// It supports cursor movement, character insertion/deletion and clipboard paste.
@@ -118,20 +124,8 @@ impl TextInput {
         self.character_index = 0;
     }
 
-    fn handle_paste(&mut self) -> Result<()> {
-        match utils::paste_from_clipboard() {
-            Ok(content) => {
-                if content.trim().is_empty() {
-                    return Err(anyhow::anyhow!("Nothing to paste from clipboard"));
-                }
-                self.enter_string(&content);
-            }
-            Err(e) => {
-                log::error!("Clipboard paste failed: {:?}", e);
-                return Err(e);
-            }
-        }
-        Ok(())
+    fn handle_paste(&mut self) -> Result<String> {
+        utils::paste_from_clipboard()
     }
 }
 
@@ -192,13 +186,24 @@ impl SearchInput {
         self.history_index = None;
     }
 
-    pub async fn handle_key_events(&mut self, key: crossterm::event::KeyEvent) -> Result<()> {
+    pub async fn handle_key_events(
+        &mut self,
+        key: crossterm::event::KeyEvent,
+    ) -> Result<Option<Action>> {
         match key.code {
             crossterm::event::KeyCode::Char(c) => {
                 match key.modifiers {
-                    // Ctrl + V  →  paste from clipboard
+                    // Ctrl + V  | Ctrl + Shift + V →  paste from clipboard
                     KeyModifiers::CONTROL if c.eq_ignore_ascii_case(&'v') => {
-                        self.text_input.handle_paste()?;
+                        let content_to_paste = self.text_input.handle_paste()?;
+                        if content_to_paste.is_empty() {
+                            return Ok(Action::UpdateAppState(AppState::Failure(
+                                CLIPBOARD_EMPTY_MSG.to_string(),
+                            ))
+                            .into());
+                        } else {
+                            self.text_input.enter_string(&content_to_paste);
+                        }
                     }
 
                     // Allow printable characters with NONE / SHIFT / ALT / CTRL+ALT
@@ -214,7 +219,7 @@ impl SearchInput {
                     }
 
                     // Ignore everything else
-                    _ => return Ok(()),
+                    _ => return Ok(None),
                 }
             }
 
@@ -225,10 +230,10 @@ impl SearchInput {
             crossterm::event::KeyCode::Up => self.history_backward(),
             crossterm::event::KeyCode::Down => self.history_forward(),
 
-            _ => return Ok(()),
+            _ => return Ok(None),
         }
 
-        Ok(())
+        Ok(None)
     }
 
     /// Renders the input field content directly into the given area without drawing a surrounding block.
@@ -311,10 +316,19 @@ impl SettingsInput {
         match key.code {
             crossterm::event::KeyCode::Char(c) => {
                 match key.modifiers {
-                    // Ctrl + V  →  paste from clipboard
+                    // Ctrl + V  | Ctrl + Shift + V →  paste from clipboard
                     KeyModifiers::CONTROL if c.eq_ignore_ascii_case(&'v') => {
                         self.is_valid_path = true; // Reset the valid path state on new input, to hide error message while validating the new path
-                        self.text_input.handle_paste()?;
+                        let content_to_paste = self.text_input.handle_paste()?;
+                        if content_to_paste.is_empty() {
+                            log::warn!("Settings-Input - {CLIPBOARD_EMPTY_MSG}");
+                            return Ok(Action::UpdateAppState(AppState::Failure(
+                                CLIPBOARD_EMPTY_MSG.to_string(),
+                            ))
+                            .into());
+                        } else {
+                            self.text_input.enter_string(&content_to_paste);
+                        }
                     }
 
                     // Allow printable characters with NONE / SHIFT / ALT / CTRL+ALT

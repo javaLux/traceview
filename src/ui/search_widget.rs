@@ -222,9 +222,7 @@ impl Component for SearchWidget {
                 // - Left / Right cursor movement
                 // - Up / Down history navigation
                 // - Ctrl+V clipboard paste
-                if let Err(err) = self.search_input.handle_key_events(key).await {
-                    return Ok(Action::UpdateAppState(AppState::Failure(err.to_string())).into());
-                }
+                return self.search_input.handle_key_events(key).await;
             }
         }
 

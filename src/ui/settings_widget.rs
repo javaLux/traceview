@@ -219,7 +219,7 @@ impl SettingsPage {
         Line::from(vec![
             Span::raw(" Settings | "),
             Span::styled("<Esc> ", Style::default().fg(Color::Yellow)),
-            Span::raw("Save and Close  "),
+            Span::raw("Close  "),
             Span::styled("<Enter> ", Style::default().fg(Color::Yellow)),
             Span::raw("Edit  "),
             Span::styled("<↑↓> ", Style::default().fg(Color::Yellow)),
@@ -350,6 +350,15 @@ impl Component for SettingsPage {
                 self.is_dropdown_active = true;
             }
             Action::DropDownClosed => {
+                self.is_dropdown_active = false;
+            }
+            Action::SettingsInputShowing => {
+                self.is_input_active = true;
+            }
+            Action::SettingsInputCanceled => {
+                self.is_input_active = false;
+            }
+            Action::ApplyDropDownSelection => {
                 // update the config with the new settings from the dropdown
                 match &mut self.dropdown {
                     DropDownTypes::Theme(d) => {
@@ -374,12 +383,6 @@ impl Component for SettingsPage {
                 // also update the new settings on the settings page
                 self.settings.set_items(self.config.config_docs(true));
                 self.is_dropdown_active = false;
-            }
-            Action::SettingsInputShowing => {
-                self.is_input_active = true;
-            }
-            Action::SettingsInputCanceled => {
-                self.is_input_active = false;
             }
             Action::ApplySettingsInput => {
                 // update the config with the new settings from the input

@@ -1,11 +1,21 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
-and this project adheres to [Semantic Versioning](https://semver.org/).
+## [Released]
 
----
+## [2.1.0] - 2026-02-25
+- Update dependencies
+- Small UI improvements
+
+### Added
+- The Directory-Path input widget (Settings-Page) now has a tidy auto-completion feature -> Use it by pressing the `Tab` key
+
+## Fixed
+- In this version, a bug on the settings page has been fixed: When content from the clipboard was pasted into 
+  the Directory-Path input widget and it was empty, the app would crash with an error
+<br>
+
 
 ## [2.0.0] - 2026-02-24
 - Update dependencies

@@ -2423,7 +2423,7 @@ checksum = "ab16f14aed21ee8bfd8ec22513f7287cd4a91aa92e44edfe2c17ddd004e92607"
 
 [[package]]
 name = "traceview"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "anyhow",
  "async-trait",

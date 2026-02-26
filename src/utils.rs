@@ -345,17 +345,22 @@ pub fn key_event_to_string(event: KeyEvent) -> String {
     match event.code {
         KeyCode::Char(c) => {
             if event.modifiers == KeyModifiers::CONTROL {
-                // Sonderfall: Nur Control -> Großbuchstabe
+                // Special case for Control + Char -> "Ctrl + UPPERCASE_CHAR"
                 format!("Ctrl + {}", c.to_ascii_uppercase())
             } else if event.modifiers == KeyModifiers::SHIFT {
-                // Shift + Char -> Nur Char (Groß-/Sonderzeichen bereits berücksichtigt)
+                // Shift + Char -> Only the char (because Shift is usually handled by the char itself, e.g. 'a' with Shift becomes 'A')
                 c.to_string()
             } else if event.modifiers != KeyModifiers::NONE {
-                // Andere Modifier -> Modifier + Char
+                // Other Modifier -> Modifier + Char
                 format!("{} + {}", modifiers_str, c)
             } else {
-                // Kein Modifier -> Nur Char
-                c.to_string()
+                // No modifier -> Just the char
+                // handle case Space char
+                if c == ' ' {
+                    "Space".to_string()
+                } else {
+                    c.to_string()
+                }
             }
         }
         KeyCode::Left => format_arrow_key("Left Arrow", &modifiers_str),

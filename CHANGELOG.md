@@ -4,8 +4,12 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Released]
 
+## [2.1.1] - 2026-06-03
+- Updated dependencies
+<br>
+
 ## [2.1.0] - 2026-02-25
-- Update dependencies
+- Updated dependencies
 - Small UI improvements
 - Improved Drop-Down list handling
   - use `Space` to toggle
@@ -21,7 +25,7 @@ All notable changes to this project will be documented in this file. The format 
 
 
 ## [2.0.0] - 2026-02-24
-- Update dependencies
+- Updated dependencies
 - Migration to the new Rust Edition 2024
 - Small UI improvements
 - Improved Logging behavior
@@ -35,13 +39,13 @@ All notable changes to this project will be documented in this file. The format 
 - **Breaking Change:**
   - The app configuration via CLI-Options was removed, these are now available in the Built-In Settings-Page
   - Following CLI-Options are removed:
-    - ``[-r, --refresh-rate]`` -> to control the System-Resource update rate per second
+    - ``[-r, --refresh-rate]`` -> to control the System-Resource Updated rate per second
     - ``[-f, --frame-rate]``   -> to control the Frames per Second (TUI render)
 <br>
 
 
 ## [1.0.3] - 2025-04-11
-- update dependencies
+- Updated dependencies
 - small UI improvements
 - Optimization of memory usage
 - reduce the file size of the `search_result.json` file by removing pretty formatted JSON
@@ -52,7 +56,7 @@ All notable changes to this project will be documented in this file. The format 
 
 
 ## [1.0.2] - 2025-03-23
-- update dependencies
+- Updated dependencies
 
 ### Added
 - pre compiled binaries for Linux, MacOs and Windows

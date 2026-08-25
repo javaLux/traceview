@@ -7,7 +7,11 @@ use crate::{
         Explorer, SearchResult,
         metadata::{DirMetadata, FileMetadata},
     },
-    ui::{Theme, search_widget::SearchMode},
+    ui::{
+        Theme,
+        search::{SearchMode, SearchProperties},
+        search_criteria::Criteria,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,7 +20,8 @@ pub enum Action {
     ApplyAppSettings(AppConfig),
     ApplyDropDownSelection,
     ApplySettingsInput,
-    CloseMetadata,
+    MetadataClosed,
+    SearchCriteriaClosed(Criteria),
     DropDownClosed,
     DropDownShowing,
     Error(String),
@@ -45,7 +50,8 @@ pub enum Action {
     ShowResultsPage(SearchResult, SearchMode),
     ShowSearchPage(PathBuf),
     ShowSettings(AppContext),
-    StartSearch(PathBuf, String, usize, bool),
+    ShowSearchCriteria,
+    StartSearch(SearchProperties),
     Suspend,
     SwitchAppContext(AppContext),
     Tick,

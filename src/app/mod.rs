@@ -13,10 +13,9 @@ use crate::{
     file_handling::ExplorerTask,
     tui,
     ui::{
-        about_widget::AboutPage, explorer_widget::ExplorerWidget, footer_widget::Footer,
-        help_widget::HelpPage, info_widget::SystemOverview, metadata_widget::MetadataPage,
-        result_widget::ResultWidget, search_widget::SearchWidget, settings_widget::SettingsPage,
-        title_widget::TitleBar,
+        about::AboutPage, app_settings::SettingsPage, explorer::ExplorerWidget, footer::Footer,
+        help::HelpPage, info::SystemOverview, metadata::MetadataPage, result::ResultWidget,
+        search::SearchWidget, search_criteria::SearchCriteriaPage, title::TitleBar,
     },
 };
 
@@ -100,8 +99,9 @@ impl App {
         let footer = Footer::default();
         let help_page = HelpPage::default();
         let about_page = AboutPage::default();
-        let settings_page = SettingsPage::default();
+        let app_settings_page = SettingsPage::default();
         let metadata_page = MetadataPage::default();
+        let search_criteria_page = SearchCriteriaPage::default();
 
         Self {
             config_path,
@@ -115,8 +115,9 @@ impl App {
                 Box::new(footer),
                 Box::new(help_page),
                 Box::new(about_page),
-                Box::new(settings_page),
+                Box::new(app_settings_page),
                 Box::new(metadata_page),
+                Box::new(search_criteria_page),
             ],
             should_quit: false,
             is_forced_shutdown: false,
@@ -256,6 +257,7 @@ impl App {
 
         tui.exit()?;
 
+        // If the app was interrupted while running (forced shutdown)
         if explorer_task.is_forced_shutdown() || self.is_forced_shutdown {
             log::warn!("[{}] => {}", APP_NAME, FORCED_SHUTDOWN_MSG);
             println!(
@@ -264,26 +266,26 @@ impl App {
                 APP_NAME,
                 FORCED_SHUTDOWN_MSG
             )
+        }
+        // Try to save app configuration
+        if let Err(err) = self.config.save_config(&self.config_path) {
+            let err_title = "Failed to save app settings";
+            log::error!("{} - {:?}", err_title, err);
+            println!(
+                "{} [{}] => {}",
+                style("[WARN]").yellow().bold(),
+                APP_NAME,
+                err_title
+            )
         } else {
-            // Try to save app configuration
-            if let Err(err) = self.config.save_config(&self.config_path) {
-                let err_title = "Failed to save app settings";
-                log::error!("{} - {:?}", err_title, err);
-                println!(
-                    "{} [{}] => {}",
-                    style("[WARN]").yellow().bold(),
-                    APP_NAME,
-                    err_title
-                )
-            } else {
-                log::info!("[{}] => {}", APP_NAME, GRACEFUL_SHUTDOWN_MSG);
-                println!(
-                    "{} [{}] => {}",
-                    style("[INFO]").color256(40), // 40 = Light green
-                    APP_NAME,
-                    GRACEFUL_SHUTDOWN_MSG
-                )
-            }
+            // if all goes well, tell user graceful shutdown was successful
+            log::info!("[{}] => {}", APP_NAME, GRACEFUL_SHUTDOWN_MSG);
+            println!(
+                "{} [{}] => {}",
+                style("[INFO]").color256(40), // 40 = Light green
+                APP_NAME,
+                GRACEFUL_SHUTDOWN_MSG
+            )
         }
 
         Ok(())

@@ -10,6 +10,7 @@ use crate::{
     app::{AppState, actions::Action},
     file_handling::metadata::{DirMetadata, FileMetadata},
     models::Scrollable,
+    ui::search::SearchProperties,
     utils,
 };
 
@@ -125,8 +126,8 @@ impl ExplorerTask {
                                         },
                                     }
                                 }
-                                Action::StartSearch(cwd, search_query, depth, follow_sym_links) => {
-                                    match Explorer::find_entries_by_name(action_sender.clone(), cwd, search_query, depth, follow_sym_links) {
+                                Action::StartSearch(search_properties) => {
+                                    match Explorer::find_entries_by_pattern(action_sender.clone(), search_properties) {
                                         Ok(search_result) => action_sender.send(Action::SearchDone(search_result)).expect("Explorer: Unable to send 'Action::SearchDone'"),
                                         Err(_) => {
                                             log::error!("Explorer: Unable to send 'Action::UpdateExplorerState' while searching for files/folders. The channel may have been dropped or closed before the sending completed.");
@@ -175,6 +176,7 @@ impl ExplorerTask {
 pub struct SearchResult {
     // The shorted CWD -> used as Block title
     cwd_display_name: String,
+    case_sensitive: bool,
     // The selected item (DirEntry) in the table
     selected: usize,
     // The terminal height is used to determine how many items to display on the screen
@@ -183,7 +185,7 @@ pub struct SearchResult {
     terminal_height: usize,
     // The index of the first item to display on the screen
     start_index: usize,
-    search_query: String,
+    pattern: String,
     items: Vec<DiskEntry>,
 }
 
@@ -275,6 +277,10 @@ impl SearchResult {
         self.terminal_height = size as usize;
     }
 
+    pub fn case_sensitive(&self) -> bool {
+        self.case_sensitive
+    }
+
     pub fn cwd_display_name(&self) -> &str {
         &self.cwd_display_name
     }
@@ -292,8 +298,8 @@ impl SearchResult {
         self.start_index = 0;
     }
 
-    pub fn search_query(&self) -> &String {
-        &self.search_query
+    pub fn pattern(&self) -> &String {
+        &self.pattern
     }
 
     /// Returns a vector containing the current page of directory content to display,
@@ -644,26 +650,31 @@ impl Explorer {
         }
     }
 
-    pub fn find_entries_by_name(
+    /// Recursively searches `cwd` up to the specified `depth` for files and/or
+    /// directories whose names contain the passed `pattern`.
+    pub fn find_entries_by_pattern(
         tx: mpsc::UnboundedSender<Action>,
-        cwd: PathBuf,
-        search_query: String,
-        depth: usize,
-        follow_sym_links: bool,
+        search_props: SearchProperties,
     ) -> Result<Option<SearchResult>> {
-        let lower_case_query = search_query.to_lowercase();
+        assert!(
+            !(search_props.criteria().only_files() && search_props.criteria().only_folders()),
+            "'only_files' and 'only_folders' must not both be set to 'true' at the same time"
+        );
+
+        // For a case-insensitive comparison, the pattern is first converted to lowercase.
+        let lower_case_pattern = search_props.pattern().to_lowercase();
         let mut matches: Vec<DiskEntry> = vec![];
         let mut file_counter: usize = 0;
         let mut dir_counter: usize = 0;
 
-        let search_result: Result<()> = WalkDir::new(cwd.clone())
-            .max_depth(depth)
-            .follow_links(follow_sym_links)
+        let search_result: Result<()> = WalkDir::new(search_props.cwd())
+            .max_depth(search_props.depth())
+            .follow_links(search_props.follow_sym_links())
             .sort_by_file_name()
             .into_iter()
             .filter_map(Result::ok)
             // exclude the current working directory!!!
-            .filter(|entry| entry.path() != cwd)
+            .filter(|entry| entry.path() != search_props.cwd())
             .try_for_each(|entry| -> Result<()> {
                 let entry_name = entry.file_name().to_string_lossy().to_string();
                 let is_dir = entry.file_type().is_dir();
@@ -674,33 +685,51 @@ impl Explorer {
                     file_counter += 1;
                 }
 
-                if entry_name.to_lowercase().contains(&lower_case_query) {
-                    let path = entry.path().to_path_buf();
-                    let disk_entry = if is_dir {
-                        DiskEntry {
-                            name: entry_name,
-                            path,
-                            file_metadata: None,
-                            is_dir,
-                        }
-                    } else {
-                        let file_metadata = entry.metadata().ok().map(|metadata| FileMetadata {
-                            created: metadata.created().ok(),
-                            last_access: metadata.accessed().ok(),
-                            modified: metadata.modified().ok(),
-                            size: metadata.len(),
-                            read_only: metadata.permissions().readonly(),
-                        });
+                // This logic works only because it is ensured that `only_files` and `only_folders` are never both true at the same time.
+                let type_matches = if search_props.criteria().only_files() {
+                    !is_dir
+                } else if search_props.criteria().only_folders() {
+                    is_dir
+                } else {
+                    true
+                };
 
-                        DiskEntry {
-                            name: entry_name,
-                            path,
-                            file_metadata,
-                            is_dir,
-                        }
+                if type_matches {
+                    let name_matches = if search_props.criteria().case_sensitive() {
+                        entry_name.contains(search_props.pattern())
+                    } else {
+                        entry_name.to_lowercase().contains(&lower_case_pattern)
                     };
 
-                    matches.push(disk_entry);
+                    if name_matches {
+                        let path = entry.path().to_path_buf();
+                        let disk_entry = if is_dir {
+                            DiskEntry {
+                                name: entry_name,
+                                path,
+                                file_metadata: None,
+                                is_dir,
+                            }
+                        } else {
+                            let file_metadata =
+                                entry.metadata().ok().map(|metadata| FileMetadata {
+                                    created: metadata.created().ok(),
+                                    last_access: metadata.accessed().ok(),
+                                    modified: metadata.modified().ok(),
+                                    size: metadata.len(),
+                                    read_only: metadata.permissions().readonly(),
+                                });
+
+                            DiskEntry {
+                                name: entry_name,
+                                path,
+                                file_metadata,
+                                is_dir,
+                            }
+                        };
+
+                        matches.push(disk_entry);
+                    }
                 }
 
                 // Don't panic here, because we want to be able to shutdown the app without a panic report
@@ -716,8 +745,9 @@ impl Explorer {
             Ok(_) => {
                 if !matches.is_empty() {
                     let result = SearchResult {
-                        cwd_display_name: utils::format_path_for_display(&cwd),
-                        search_query,
+                        cwd_display_name: utils::format_path_for_display(search_props.cwd()),
+                        case_sensitive: search_props.criteria().case_sensitive(),
+                        pattern: search_props.pattern().to_string(),
                         items: matches,
                         selected: Default::default(),
                         terminal_height: Default::default(),
@@ -743,6 +773,10 @@ impl Explorer {
 
     pub fn set_terminal_height(&mut self, size: u16) {
         self.terminal_height = size as usize;
+    }
+
+    pub fn set_selected(&mut self, v: usize) {
+        self.selected = v;
     }
 
     pub fn cwd(&self) -> &PathBuf {

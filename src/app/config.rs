@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 use crate::{
-    ui::Theme,
+    ui::{Theme, search_criteria::Criteria},
     utils::{absolute_path_as_string, data_dir, format_path_for_display, user_home_dir},
 };
 
@@ -12,7 +12,7 @@ pub const CONFIG_NAME: &str = "config.toml";
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AppConfig {
     /// The default app theme on start up [Light, Dark, Dracula, Indigo]
-    default_theme: Theme,
+    theme: Theme,
     /// Directory in which the Explorer should start
     start_dir: PathBuf,
     /// Directory to which the search results are to be exported
@@ -23,12 +23,14 @@ pub struct AppConfig {
     system_update_rate: u8,
     /// Frames per Second (Rendering)
     fps: u8,
+    /// Search Criteria -> configured by search context
+    search_criteria: Criteria,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            default_theme: Default::default(),
+            theme: Default::default(),
             start_dir: user_home_dir().map_or(
                 {
                     std::env::current_dir()
@@ -41,6 +43,7 @@ impl Default for AppConfig {
             follow_sym_links: false,
             system_update_rate: 1,
             fps: 45,
+            search_criteria: Default::default(),
         }
     }
 }
@@ -133,9 +136,20 @@ impl AppConfig {
             config.system_update_rate = default_update_rate;
         }
 
+        if config.search_criteria.only_files() && config.search_criteria.only_folders() {
+            let default_search_criteria = Criteria::default();
+            log::warn!(
+                "[Config] Values for 'search_criteria' invalid. 'only_files' and 'only_folders' must not both set to true, fallback to default |{:?}|",
+                default_search_criteria
+            );
+            config.search_criteria = default_search_criteria;
+        }
+
         config
     }
 
+    // Used by the app settings page to render each property like a table
+    // Name of setting | Value | Description
     pub fn config_docs(&self, with_description: bool) -> Vec<Vec<String>> {
         let start_dir = format_path_for_display(absolute_path_as_string(self.start_dir()));
         let export_dir = format_path_for_display(absolute_path_as_string(self.export_dir()));
@@ -188,7 +202,7 @@ impl AppConfig {
     }
 
     pub fn set_theme(&mut self, t: Theme) {
-        self.default_theme = t;
+        self.theme = t;
     }
 
     pub fn set_start_dir<P: AsRef<Path>>(&mut self, p: P) {
@@ -211,8 +225,12 @@ impl AppConfig {
         self.fps = fps;
     }
 
+    pub fn set_search_criteria(&mut self, criteria: Criteria) {
+        self.search_criteria = criteria;
+    }
+
     pub fn theme(&self) -> Theme {
-        self.default_theme
+        self.theme
     }
 
     pub fn start_dir(&self) -> PathBuf {
@@ -233,5 +251,9 @@ impl AppConfig {
 
     pub fn fps(&self) -> u8 {
         self.fps
+    }
+
+    pub fn search_criteria(&self) -> &Criteria {
+        &self.search_criteria
     }
 }

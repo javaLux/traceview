@@ -1,18 +1,19 @@
 use ratatui::{prelude::*, style::palette::tailwind};
 use serde::{Deserialize, Serialize};
 
-pub mod about_widget;
+pub mod about;
+pub mod app_settings;
 pub mod dropdown;
-pub mod explorer_widget;
-pub mod footer_widget;
-pub mod help_widget;
-pub mod info_widget;
+pub mod explorer;
+pub mod footer;
+pub mod help;
+pub mod info;
 pub mod input;
-pub mod metadata_widget;
-pub mod result_widget;
-pub mod search_widget;
-pub mod settings_widget;
-pub mod title_widget;
+pub mod metadata;
+pub mod result;
+pub mod search;
+pub mod search_criteria;
+pub mod title;
 
 pub const PALETTES: [tailwind::Palette; 4] = [
     tailwind::BLUE,
@@ -133,7 +134,6 @@ pub fn centered_rect_fixed_height(percent_x: u16, fixed_height: u16, r: Rect) ->
     ])
     .split(r);
 
-    // Horizontal: prozentual wie bisher
     Layout::horizontal([
         Constraint::Percentage((100 - percent_x) / 2),
         Constraint::Percentage(percent_x),
@@ -177,7 +177,7 @@ impl Theme {
                 header_fg: tailwind::SLATE.c200,
                 normal_row_color: tailwind::GRAY.c300,
                 alt_row_color: tailwind::GRAY.c400,
-                search_highlight_color: tailwind::RED.c700,
+                search_highlight_color: tailwind::RED.c500,
                 selected_color: tailwind::BLACK,
                 done_state_color: Color::Blue,
                 failure_state_color: tailwind::RED.c700,
@@ -195,7 +195,7 @@ impl Theme {
                 header_fg: tailwind::SLATE.c200,
                 normal_row_color: tailwind::SLATE.c800,
                 alt_row_color: tailwind::SLATE.c900,
-                search_highlight_color: tailwind::GREEN.c500,
+                search_highlight_color: tailwind::ORANGE.c600,
                 selected_color: tailwind::SKY.c400,
                 done_state_color: Color::LightCyan,
                 failure_state_color: tailwind::RED.c500,
@@ -213,7 +213,7 @@ impl Theme {
                 header_fg: tailwind::SLATE.c200,
                 normal_row_color: tailwind::SLATE.c900,
                 alt_row_color: tailwind::BLACK,
-                search_highlight_color: tailwind::GREEN.c500,
+                search_highlight_color: tailwind::RED.c800,
                 selected_color: tailwind::SKY.c400,
                 done_state_color: tailwind::CYAN.c300,
                 failure_state_color: tailwind::RED.c500,
@@ -267,6 +267,7 @@ impl Theme {
 ///
 /// A `Vec<Span>` containing the input text divided into segments, with highlighted portions styled accordingly.
 pub fn highlight_text_part(
+    case_sensitive: bool,
     text: String,
     highlight: &str,
     highlight_color: Color,
@@ -279,20 +280,25 @@ pub fn highlight_text_part(
         return vec![Span::from(text.clone()).fg(default_color)];
     }
 
-    let lower_text = text.to_lowercase();
-    let lower_highlight = highlight.to_lowercase();
+    let (search_text, search_highlight) = if case_sensitive {
+        (text.clone(), highlight.to_string())
+    } else {
+        (text.to_lowercase(), highlight.to_lowercase())
+    };
+
     let mut start = 0;
 
-    while let Some(pos) = lower_text[start..].find(&lower_highlight) {
+    while let Some(pos) = search_text[start..].find(&search_highlight) {
         let pos = start + pos;
+        let end = pos + search_highlight.len();
 
-        // Push the text before the highlight if it exists
+        // Push the text before the highlight if it exists (aus dem Original-Text)
         if pos > start {
             spans.push(Span::from(text[start..pos].to_string()).fg(default_color));
         }
 
-        // Get the text that should be highlighted
-        let highlighted_part = &text[pos..pos + highlight.len()];
+        // Get the text that should be highlighted (aus dem Original-Text)
+        let highlighted_part = &text[pos..end];
         spans.push(
             Span::from(highlighted_part.to_string())
                 .fg(default_color)
@@ -300,10 +306,10 @@ pub fn highlight_text_part(
         );
 
         // Move to the remaining part after the highlighted section
-        start = pos + highlight.len();
+        start = end;
     }
 
-    // Push the remaining text if there is any left
+    // Push the remaining text if there is any left (aus dem Original-Text)
     if start < text.len() {
         spans.push(Span::from(text[start..].to_string()).fg(default_color));
     }
@@ -323,7 +329,8 @@ mod tests {
     fn test_basic_highlight_1() {
         let filename = "important_document.txt";
         let highlight = "important";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let result =
+            highlight_text_part(false, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(
             result,
             vec![
@@ -337,7 +344,8 @@ mod tests {
     fn test_basic_highlight_2() {
         let filename = "test_my_doc.rs";
         let highlight = "my";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let result =
+            highlight_text_part(false, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(
             result,
             vec![
@@ -352,7 +360,8 @@ mod tests {
     fn test_basic_highlight_3() {
         let filename = "test_rust_file.rs";
         let highlight = ".rs";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let result =
+            highlight_text_part(false, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(
             result,
             vec![
@@ -366,7 +375,8 @@ mod tests {
     fn test_multiple_highlight() {
         let filename = "test_my_doc_test.rs";
         let highlight = "test";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let result =
+            highlight_text_part(false, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(
             result,
             vec![
@@ -382,7 +392,8 @@ mod tests {
     fn test_empty_highlight_given_1() {
         let filename = "document_important.pdf";
         let highlight = "";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let result =
+            highlight_text_part(false, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(result, vec![Span::from("document_important.pdf").white()])
     }
 
@@ -390,15 +401,26 @@ mod tests {
     fn test_empty_highlight_given_2() {
         let filename = "document_important.pdf";
         let highlight = "\t      ";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let result =
+            highlight_text_part(false, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(result, vec![Span::from("document_important.pdf").white()])
     }
 
     #[test]
-    fn test_highlight_uppercase() {
+    fn test_highlight_case_sensitive_no_match() {
         let filename = "document_important.pdf";
         let highlight = "POrTanT";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let result =
+            highlight_text_part(true, filename.into(), highlight, Color::Cyan, Color::White);
+        assert_eq!(result, vec![Span::from("document_important.pdf").white()])
+    }
+
+    #[test]
+    fn test_highlight_case_sensitive_match() {
+        let filename = "document_important.pdf";
+        let highlight = "portant";
+        let result =
+            highlight_text_part(true, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(
             result,
             vec![
@@ -410,15 +432,43 @@ mod tests {
     }
 
     #[test]
-    fn test_highlight_lowercase() {
+    fn test_highlight_case_sensitive_exact_uppercase() {
         let filename = "DOCUMENT.PDF";
-        let highlight = ".pdf";
-        let result = highlight_text_part(filename.into(), highlight, Color::Cyan, Color::White);
+        let highlight = ".PDF";
+        let result =
+            highlight_text_part(true, filename.into(), highlight, Color::Cyan, Color::White);
         assert_eq!(
             result,
             vec![
                 Span::from("DOCUMENT").white(),
                 Span::from(".PDF").white().on_cyan()
+            ]
+        )
+    }
+
+    #[test]
+    fn test_highlight_case_sensitive_mixed_case_no_match() {
+        let filename = "DOCUMENT.PDF";
+        let highlight = ".pdf";
+        let result =
+            highlight_text_part(true, filename.into(), highlight, Color::Cyan, Color::White);
+        assert_eq!(result, vec![Span::from("DOCUMENT.PDF").white()])
+    }
+
+    #[test]
+    fn test_highlight_case_sensitive_repeated_letter_mixed_case() {
+        let filename = "Aa_Report_aA.txt";
+        let highlight = "a";
+        let result =
+            highlight_text_part(true, filename.into(), highlight, Color::Cyan, Color::White);
+        assert_eq!(
+            result,
+            vec![
+                Span::from("A").white(),
+                Span::from("a").white().on_cyan(),
+                Span::from("_Report_").white(),
+                Span::from("a").white().on_cyan(),
+                Span::from("A.txt").white(),
             ]
         )
     }

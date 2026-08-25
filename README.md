@@ -14,6 +14,21 @@ A fast and feature-rich TUI (Text-based User Interface) application written in R
 
 ---
 
+## Table of Contents
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [Themes](#themes)
+- [App Context](#app-context)
+- [Searching by File or Directory Name](#searching-by-file-or-directory-name)
+- [Capturing File and Directory Metadata](#capturing-file-and-directory-metadata)
+- [Limitations](#limitations)
+- [License](#license)
+- [Tested Platforms](#tested-platforms)
+- [Troubleshooting](#troubleshooting)
+- [Collaboration](#collaboration)
+
+
 ## Features
 - **Filesystem Explorer**: Quickly browse and navigate local directories.
 - **System Overview**: Monitor CPU, Swap, memory, and disk usage in real-time.
@@ -133,7 +148,7 @@ To change the theme you can press `Ctrl + T` within the app. Furthermore, the de
 
 <br>
 
-## App Contexts
+## App Context
 TraceView operates in three primary contexts, each with context-specific controls and keybindings:
 
 1. **Explorer Context** – Navigate and browse the filesystem.
@@ -162,6 +177,10 @@ TraceView provides a powerful search feature that allows users to search specifi
 TraceView offers two search modes:
 - **Flat Search:** Searches only within the currently selected directory (non-recursive). Ideal for quick local searches.
 - **Deep Search:** Recursively searches through all subdirectories within the selected path. Useful for locating files or directories in nested structures.
+- Provided **Search-Criteria**:
+   - `Only Files`: The search only considers files
+   - `Only Folders`: The search only considers directories
+   - `Case-Sensitive`: Whether or not to distinguish between uppercase and lowercase letters in the search pattern
 
 ### Search Input History
 - The input field for typing search queries maintains a **history of previous searches** during the current session.
@@ -171,6 +190,7 @@ TraceView offers two search modes:
 **Usage Notes:**
 - Initiate a search by pressing `Ctrl + F` in the Explorer Context.
 - Enter your search query and choose between Flat or Deep mode.
+- Set search criteria by pressing `F4` in the Search Context.
 - Search results are displayed instantly based on the selected mode.
 
 ⚠️ **Performance Considerations:**
@@ -199,17 +219,7 @@ TraceView allows users to capture metadata (press `Ctrl + A` in Explorer Context
 
 <br>
 
-## If Things Take a Long Time
-Some operations in TraceView, such as searching for files/directories or exporting search results, may take longer to complete depending on the size and complexity of the filesystem. 
-
-**Cancel Ongoing Processes:**  
-- You can quit the app at any time by pressing `Ctrl + Q`.  
-- This is especially useful during deep searches or large directory exports that require extensive processing time.
----
-
-<br>
-
-## 🚫 Limitations
+## Limitations
 While TraceView offers a variety of features for browsing, searching, and viewing metadata, it is important to note that **it is not a full-fledged file explorer**. As such:
 - **File or directory manipulation (copying, moving, deleting, or renaming) is not supported.**
 - TraceView is currently designed to provide safe, read-only access to filesystem information without risking unintended file modifications.
@@ -218,7 +228,7 @@ While TraceView offers a variety of features for browsing, searching, and viewin
 <br>
 
 ## License
-This project is licensed under the MIT License.
+This project is licensed under the [MIT](LICENSE) License.
 
 ---
 
@@ -243,15 +253,23 @@ TraceView has been tested on the following operating systems and environments:
 | Linux Mint       | 22.3            | GNOME-Terminal / bash, zsh                      | x86_64   |
 | EndeavourOS      | Ganymede Neo    | KDE-Terminal / bash, zsh                        | x86_64   |
 | macOS            | Monterey (12.x) | iTerm2 / zsh                                    | x86_64   |
+| macOS            | Tahoe (26.5.x)  | zsh                                             | arm64    | 
 
 ### Notice
-When testing under MacOs, I noticed that the standard terminal does not fully support true RGB (24-bit) colors. For this reason, the test was also carried out with the third-party terminal `iTerm2'`. There all colors are displayed as expected. So if you notice an incorrect display of colors under MacOs, please use the [iTerm2](https://iterm2.com/) terminal.
+When testing under MacOs (Monterey x86_64), I noticed that the standard terminal does not fully support true RGB (24-bit) colors. For this reason, the test was also carried out with the third-party terminal `iTerm2'`. There all colors are displayed as expected. So if you notice an incorrect display of colors under MacOs, please use the [iTerm2](https://iterm2.com/) terminal.
 
 ---
 
 <br>
 
 ## Troubleshooting
+
+### If Things Take a Long Time
+Some operations in TraceView, such as searching for files/directories or exporting search results, may take longer to complete depending on the size and complexity of the filesystem. 
+
+**Cancel Ongoing Processes:**  
+- You can quit the app at any time by pressing `Ctrl + Q`.  
+- This is especially useful during deep searches or large directory exports that require extensive processing time.
 
 ### Pasting content from the clipboard does not work
 If `Ctrl+V` does not work to paste content from the clipboard, please try `Ctrl+Shift+V` as an alternative.
@@ -276,7 +294,7 @@ If an error appears in the status bar:
 
 <br>
 
-## **Collaboration, Feedback & Bug Reports**
+## Collaboration
 I welcome feedback, suggestions, and bug reports! Your input helps make TraceView better.
 
 ### How to Contribute
@@ -292,5 +310,5 @@ I welcome feedback, suggestions, and bug reports! Your input helps make TraceVie
 
 <br>
 
-## Thank you for using TraceView! 🙌
+**_Thank you for using TraceView!_** 🙌
 

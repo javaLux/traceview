@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Released]
 
+## [2.2.0] - 2026-08-26
+- Updated dependencies
+- Improved MacOS colors
+
+### Added
+- You can now apply search criteria to search for file and directory names
+  - Press `F4` in the search context to open search criteria
+    - The provided criteria are:
+      - `Only Files`
+      - `Only Folders`
+      - `Case-Sensitive` 
+<br>
+
 ## [2.1.1] - 2026-06-03
 - Updated dependencies
 <br>

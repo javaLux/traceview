@@ -89,9 +89,9 @@ pub struct App {
 
 impl App {
     /// Constructs a new instance of [`App`].
-    pub fn new(config: AppConfig, config_path: PathBuf) -> Self {
+    pub fn new(config: AppConfig, config_path: PathBuf) -> Result<Self> {
         let title_bar = TitleBar::default();
-        let sys_info = SystemOverview::default();
+        let sys_info = SystemOverview::new()?;
         let file_explorer =
             ExplorerWidget::new(config.start_dir().clone(), config.follow_sym_links());
         let search_widget = SearchWidget::default();
@@ -103,7 +103,7 @@ impl App {
         let metadata_page = MetadataPage::default();
         let search_criteria_page = SearchCriteriaPage::default();
 
-        Self {
+        Ok(Self {
             config_path,
             config,
             components: vec![
@@ -121,7 +121,7 @@ impl App {
             ],
             should_quit: false,
             is_forced_shutdown: false,
-        }
+        })
     }
 
     pub async fn run(&mut self) -> Result<()> {

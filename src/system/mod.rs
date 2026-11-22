@@ -1,12 +1,12 @@
 #![allow(dead_code)]
-use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, RefreshKind, System};
-
 use crate::utils;
+use anyhow::Result;
+use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, RefreshKind, System};
 
 const MAX_VALUE_LENGTH: usize = 20;
 
 /// Represents the specific System details of the underlying machine
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SystemDetails {
     pub total_memory: u64,
     pub used_memory: u64,
@@ -26,43 +26,30 @@ pub struct SystemDetails {
 }
 
 impl SystemDetails {
-    pub fn default() -> Self {
+    pub fn new() -> Result<Self> {
         let mut system = System::new_with_specifics(
             RefreshKind::nothing()
                 .with_cpu(CpuRefreshKind::everything())
                 .with_memory(MemoryRefreshKind::everything()),
-        );
+        )?;
+
+        let disks = Disks::new_with_refreshed_list()?;
 
         // we update only the cpu and memory based system information
         system.refresh_cpu_all();
         system.refresh_memory();
 
-        // collect the required system information that can be None
-        let system_name = match System::name() {
-            Some(name) => utils::reduce_string_and_fill_with_dots(&name, MAX_VALUE_LENGTH),
-            None => "Unknown".to_string(),
-        };
-        let kernel_version = match System::kernel_version() {
-            Some(version) => utils::reduce_string_and_fill_with_dots(&version, MAX_VALUE_LENGTH),
-            None => "Unknown".to_string(),
-        };
-        let os_version = match System::os_version() {
-            Some(version) => utils::reduce_string_and_fill_with_dots(&version, MAX_VALUE_LENGTH),
-            None => "Unknown".to_string(),
-        };
-        let hostname = match System::host_name() {
-            Some(name) => utils::reduce_string_and_fill_with_dots(&name, MAX_VALUE_LENGTH),
-            None => "Unknown".to_string(),
-        };
+        // collect the required system information
+        let system_name = SystemDetails::format_system_value(System::name());
+        let kernel_version = SystemDetails::format_system_value(System::kernel_version());
+        let os_version = SystemDetails::format_system_value(System::os_version());
+        let hostname = SystemDetails::format_system_value(System::host_name());
         let cpu_arch =
             utils::reduce_string_and_fill_with_dots(&System::cpu_arch(), MAX_VALUE_LENGTH);
-
-        let disks = Disks::new_with_refreshed_list();
-
         let (total_space, available_space) = Self::get_local_disk_space(&disks);
         let used_space = total_space - available_space;
 
-        Self {
+        Ok(Self {
             total_memory: system.total_memory(),
             used_memory: system.used_memory(),
             total_swap: system.total_swap(),
@@ -78,7 +65,7 @@ impl SystemDetails {
             cpu_arch,
             system,
             disks,
-        }
+        })
     }
 
     /// Refresh the CPU, Memory/Swap and disk usage
@@ -108,5 +95,13 @@ impl SystemDetails {
             .map_or((0_u64, 0_u64), |disk| {
                 (disk.total_space(), disk.available_space())
             })
+    }
+
+    /// Formats an optional system value, truncating it or falling back to "Unknown".
+    fn format_system_value<E>(value: Result<String, E>) -> String {
+        value.map_or_else(
+            |_| "Unknown".to_string(),
+            |v| utils::reduce_string_and_fill_with_dots(&v, MAX_VALUE_LENGTH),
+        )
     }
 }

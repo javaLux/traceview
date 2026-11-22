@@ -29,14 +29,15 @@ pub struct SystemOverview {
     is_active: bool,
 }
 
-impl Default for SystemOverview {
-    fn default() -> Self {
-        Self {
+impl SystemOverview {
+    pub fn new() -> Result<Self> {
+        let system_details = SystemDetails::new()?;
+        Ok(Self {
             action_sender: None,
-            system_details: SystemDetails::default(),
+            system_details,
             theme: Theme::default(),
             is_active: true,
-        }
+        })
     }
 }
 

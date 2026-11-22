@@ -31,14 +31,11 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             theme: Default::default(),
-            start_dir: user_home_dir().map_or(
-                {
+            start_dir: user_home_dir().unwrap_or({
                     std::env::current_dir()
                         .ok()
                         .unwrap_or(PathBuf::new().join("."))
-                },
-                |home_dir| home_dir,
-            ),
+                }),
             export_dir: data_dir(),
             follow_sym_links: false,
             system_update_rate: 1,
@@ -93,14 +90,11 @@ impl AppConfig {
         let mut config = self.clone();
 
         if !config.start_dir.is_dir() {
-            let start_dir = user_home_dir().map_or(
-                {
+            let start_dir = user_home_dir().unwrap_or({
                     std::env::current_dir()
                         .ok()
                         .unwrap_or(PathBuf::new().join("."))
-                },
-                |home_dir| home_dir,
-            );
+                });
             log::warn!(
                 "[Config] Invalid path for option 'start_dir' -> No such directory, fallback to default [{}]",
                 absolute_path_as_string(&start_dir)

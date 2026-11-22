@@ -130,7 +130,7 @@ impl Component for SearchCriteriaPage {
     }
 
     fn register_config_handler(&mut self, config: AppConfig) -> Result<()> {
-        self.criteria = config.search_criteria().clone();
+        self.criteria = *config.search_criteria();
         self.config = config;
         Ok(())
     }

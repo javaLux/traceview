@@ -79,7 +79,7 @@ impl Component for Footer {
         self.key_event_length = utils::compute_text_length(&format!(
             "{} {}",
             KEYSTROKE_TITLE,
-            &utils::key_event_to_string(key)
+            utils::key_event_to_string(key)
         )) + 2;
 
         // clear the command description

@@ -735,7 +735,7 @@ impl Explorer {
                 // Don't panic here, because we want to be able to shutdown the app without a panic report
                 tx.send(Action::UpdateAppState(AppState::Working(format!(
                     "Search in progress... {} Files, {} Dirs",
-                    &file_counter, &dir_counter
+                    file_counter, dir_counter
                 ))))?;
 
                 Ok(())

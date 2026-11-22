@@ -186,7 +186,7 @@ impl Component for SearchWidget {
     }
 
     fn register_config_handler(&mut self, config: AppConfig) -> Result<()> {
-        self.search_criteria = config.search_criteria().clone();
+        self.search_criteria = *config.search_criteria();
         self.follow_sym_links = config.follow_sym_links();
         self.theme = config.theme();
         Ok(())
@@ -317,7 +317,7 @@ impl Component for SearchWidget {
                 self.follow_sym_links = c.follow_sym_links();
             }
             Action::SearchCriteriaClosed(criteria) => {
-                self.search_criteria = criteria.clone();
+                self.search_criteria = *criteria;
                 self.is_search_criteria_pop_up = false;
             }
             _ => {}

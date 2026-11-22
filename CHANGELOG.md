@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Released]
 
+## [2.2.1] - 2026-11-22
+- Updated dependencies
+- Update Github actions
+<br>
+
 ## [2.2.0] - 2026-08-26
 - Updated dependencies
 - Improved MacOS colors

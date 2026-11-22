@@ -5,7 +5,12 @@ use ratatui::{prelude::*, widgets::*};
 use serde::{Deserialize, Serialize};
 use tui_checkbox::{Checkbox, symbols};
 
-use crate::{app::{actions::Action, config::AppConfig}, component::Component, tui::Event, ui::centered_rect};
+use crate::{
+    app::{actions::Action, config::AppConfig},
+    component::Component,
+    tui::Event,
+    ui::centered_rect,
+};
 
 // Describes the configurable search criteria
 // only_files -> means the search for the pattern applies only to files
@@ -258,11 +263,10 @@ impl Component for SearchCriteriaPage {
                 .unchecked_symbol(symbols::UNCHECKED_SPACE)
                 .style(row_style(0));
 
-            let chkbox_only_folders =
-                Checkbox::new("Only Folders", self.criteria.only_folders)
-                    .checked_symbol(symbols::CHECKED_X)
-                    .unchecked_symbol(symbols::UNCHECKED_SPACE)
-                    .style(row_style(1));
+            let chkbox_only_folders = Checkbox::new("Only Folders", self.criteria.only_folders)
+                .checked_symbol(symbols::CHECKED_X)
+                .unchecked_symbol(symbols::UNCHECKED_SPACE)
+                .style(row_style(1));
 
             let chkbox_case_sensitive =
                 Checkbox::new("Case-Sensitive", self.criteria.case_sensitive)

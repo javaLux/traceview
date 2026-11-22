@@ -202,9 +202,7 @@ pub const DEFAULT_KEY_BINDING: [KeyBinding; 25] = [
         help_contexts: &[AppContext::Search],
         command_desc: Some(&[CommandDesc {
             desc: "Show search criteria",
-            contexts: &[
-                AppContext::Search,
-            ],
+            contexts: &[AppContext::Search],
         }]),
     },
     KeyBinding {

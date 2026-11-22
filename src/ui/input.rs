@@ -104,13 +104,12 @@ impl TextInput {
                 }
             }
             // BACKSPACE  →  remove character to the left of the cursor
-            crossterm::event::KeyCode::Backspace
-                if self.character_index != 0 => {
-                    let before = self.value.chars().take(self.character_index - 1);
-                    let after = self.value.chars().skip(self.character_index);
-                    self.value = before.chain(after).collect();
-                    self.move_cursor_left();
-                }
+            crossterm::event::KeyCode::Backspace if self.character_index != 0 => {
+                let before = self.value.chars().take(self.character_index - 1);
+                let after = self.value.chars().skip(self.character_index);
+                self.value = before.chain(after).collect();
+                self.move_cursor_left();
+            }
             _ => {}
         }
     }

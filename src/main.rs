@@ -9,6 +9,8 @@ mod tui;
 mod ui;
 mod utils;
 
+use std::process::ExitCode;
+
 use anyhow::Result;
 use clap::Parser;
 use console::style;
@@ -25,32 +27,54 @@ use crate::{
 };
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> ExitCode {
+    match run().await {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            report_error(&err);
+            ExitCode::FAILURE
+        }
+    }
+}
+
+async fn run() -> Result<()> {
     let args = Cli::parse();
     create_data_dir()?;
     initialize_logging()?;
     initialize_panic_hook()?;
 
-    // get the config file path
-    let config_path = args.config.unwrap_or(config_dir().join(CONFIG_NAME));
+    // use the given config path or fall back to the default location
+    let config_path = args
+        .config
+        .unwrap_or_else(|| config_dir().join(CONFIG_NAME));
 
     // load configuration or store a new one
     let config = AppConfig::load_config(&config_path);
 
-    let mut app = App::new(config, config_path);
-    if let Err(err) = app.run().await {
-        // Reset the terminal before printing the error
-        let mut tui = Tui::new()?;
-        tui.exit()?;
-        log::error!("{err}");
-        println!(
-            "{} - Something went wrong while running {}",
-            style("[ERROR]").bold().red(),
-            app_name(),
-        );
-        println!("\t=> {err}");
-        std::process::exit(1);
+    let app_result = App::new(config, config_path)?.run().await;
+
+    if app_result.is_err() {
+        // Reset the terminal before the error gets printed
+        if let Err(reset_err) = reset_terminal() {
+            log::warn!("failed to reset terminal: {reset_err:#}");
+        }
     }
 
+    app_result
+}
+
+fn reset_terminal() -> Result<()> {
+    let mut tui = Tui::new()?;
+    tui.exit()?;
     Ok(())
+}
+
+fn report_error(err: &anyhow::Error) {
+    log::error!("{err:#}");
+    eprintln!(
+        "{} - Something went wrong while running {}",
+        style("[ERROR]").bold().red(),
+        app_name(),
+    );
+    eprintln!("\t=> {err:#}");
 }

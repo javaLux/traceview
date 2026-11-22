@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2 # Checkout the repository to the runner
+        uses: actions/checkout@v7
 
       - name: Install Linux Cross Compilers
         run:  |
@@ -73,9 +73,9 @@ jobs:
           shasum -a 256 ${{ env.RELEASE_NAME }}-gnu-linux-aarch64.tar.gz > ${{ env.RELEASE_NAME }}-gnu-linux-aarch64.tar.gz.sha256
   
       - name: Upload release binaries
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # Use the third party action to upload the release binaries
+        uses: softprops/action-gh-release@v3
         env:
-          GITHUB_TOKEN: ${{ github.token }} # Use the GitHub token for authentication
+          GITHUB_TOKEN: ${{ github.token }}
         with:
           files: |
             ${{ env.RELEASE_NAME }}-gnu-linux-x86_64.tar.gz
@@ -87,7 +87,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2 # Checkout the repository to the runner
+        uses: actions/checkout@v7
 
       - name: Install rustup targets
         run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
@@ -117,7 +117,7 @@ jobs:
           shasum -a 256 ${{ env.RELEASE_NAME }}-macos-aarch64.tar.gz > ${{ env.RELEASE_NAME }}-macos-aarch64.tar.gz.sha256
 
       - name: Upload release binaries
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda
+        uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
@@ -131,7 +131,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2 # Checkout the repository to the runner
+        uses: actions/checkout@v7
 
       - name: Install rustup targets
         run: rustup target add x86_64-pc-windows-msvc aarch64-pc-windows-msvc
@@ -169,7 +169,7 @@ jobs:
         shell: pwsh
 
       - name: Upload release binaries to GitHub
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda
+        uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
